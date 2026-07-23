@@ -1,4 +1,4 @@
-// content.js - Full 20-Scenario Database for FluentSpoken App (with Corrected Role Reversal Logic)
+// content.js - Full 20-Scenario Database for FluentSpoken App (Fully Corrected Role & Content Mapping)
 const appData = {
     students: {
         title: "Student Mode 🎓",
@@ -26,7 +26,7 @@ const appData = {
                     role2: {
                         name: "Teacher (You) & New Student (AI)",
                         turns: [
-                            { aiPrompt: "Good morning, Teacher! My name is Alex, and I really love studying mathematics.", aiPromptHindi: "सुप्रभात, टीचर! मेरा नाम एलेक्स है, और मुझे गणित पढ़ना बहुत पसंद है।" , aiExpectedHint: "Welcome Alex and ask about their previous school." },
+                            { aiPrompt: "Good morning, Teacher! My name is Alex, and I really love studying mathematics.", aiPromptHindi: "सुप्रभात, टीचर! मेरा नाम एलेक्स है, और मुझे गणित पढ़ना बहुत पसंद है." , aiExpectedHint: "Welcome Alex and ask about their previous school." },
                             { aiPrompt: "I studied at St. Mary's Public School for three years before moving here.", aiPromptHindi: "यहाँ आने से पहले मैंने तीन साल तक सेंट मैरी पब्लिक स्कूल में पढ़ाई की थी।" , aiExpectedHint: "Ask what their favorite part of math is." },
                             { aiPrompt: "I really enjoy solving algebra equations and puzzles.", aiPromptHindi: "मुझे बीजगणित के समीकरण और पहेलियाँ हल करना वास्तव में पसंद है।" , aiExpectedHint: "Praise their interest and ask if they need help settling in." },
                             { aiPrompt: "Thank you, Teacher. Everyone has been very kind, and I am finding my way around nicely.", aiPromptHindi: "धन्यवाद, टीचर। हर कोई बहुत दयालु रहा है, और मैं आसानी से रास्ते ढूंढ रहा हूँ।" , aiExpectedHint: "Tell them to let you know if they have any questions." }
@@ -319,13 +319,13 @@ const appData = {
                     role1: {
                         name: "Parent (You) & Teacher (AI)",
                         turns: [
-                            { aiPrompt: "Hello teacher, how is my child performing in class this term?", aiPromptHindi: "नमस्ते टीचर, इस टर्म में मेरा बच्चा कक्षा में कैसा प्रदर्शन कर रहा है?", aiExpectedHint: "Ask about academic progress." },
-                            { aiPrompt: "Hello! Your child is doing quite well in math, but needs a bit more focus on reading.", aiPromptHindi: "नमस्ते! आपका बच्चा गणित में काफी अच्छा कर रहा है, लेकिन उसे पढ़ने पर थोड़ा और ध्यान देने की जरूरत है।", aiExpectedHint: "Acknowledge the feedback." },
+                            { aiPrompt: "Hello! Thank you for coming in today. How can I help you regarding your child's progress?", aiPromptHindi: "नमस्ते! आज आने के लिए धन्यवाद। आपके बच्चे की प्रगति के संबंध में मैं आपकी क्या मदद कर सकता हूँ?", aiExpectedHint: "Ask about academic performance." },
+                            { aiPrompt: "Your child is doing quite well in math, but needs a bit more focus on reading.", aiPromptHindi: "आपका बच्चा गणित में काफी अच्छा कर रहा है, लेकिन उसे पढ़ने पर थोड़ा और ध्यान देने की जरूरत है।", aiExpectedHint: "Acknowledge the feedback." },
                             { aiPrompt: "We are organizing an extra reading club. Would you like to enroll him?", aiPromptHindi: "हम एक अतिरिक्त रीडिंग क्लब आयोजित कर रहे हैं। क्या आप उसका नामांकन कराना चाहेंगे?", aiExpectedHint: "Ask about timings." },
-                            { aiPrompt: "It runs from 3 PM to 4 PM every Tuesday and Thursday.", aiPromptHindi: "यह हर मंगलवार और गुरुवार को दोपहर 3 बजे से शाम 4 बजे तक चलता है।", aiExpectedHint: "Agree on the schedule." },
+                            { aiPrompt: "It runs from 3 PM to 4 PM every Tuesday and Thursday.", aiPromptHindi: "यह हर मंगलवार और गुरुवार को दोपहर 3 बजे से शाम 4 बजे तक चलता है।" , aiExpectedHint: "Agree on the schedule." },
                             { aiPrompt: "Are there any specific topics at home where he struggles with homework?", aiPromptHindi: "क्या घर पर कोई ऐसे खास विषय हैं जहाँ उसे होमवर्क में परेशानी होती है?", aiExpectedHint: "Mention spelling or grammar." },
-                            { aiPrompt: "I will share a few extra storybooks to help improve his vocabulary.", aiPromptHindi: "मैं उसकी शब्दावली को सुधारने में मदद करने के लिए कुछ अतिरिक्त कहानी की किताबें साझा करूंगी।", aiExpectedHint: "Express gratitude." },
-                            { aiPrompt: "You are most welcome. Consistent practice at home makes a huge difference.", aiPromptHindi: "आपका स्वागत है। घर पर निरंतर अभ्यास से बहुत फर्क पड़ता है।", aiExpectedHint: "Agree to practice daily." },
+                            { aiPrompt: "I will share a few extra storybooks to help improve his vocabulary.", aiPromptHindi: "मैं उसकी शब्दावली को सुधारने में मदद करने के लिए कुछ अतिरिक्त कहानी की किताबें साझा करूंगी।" , aiExpectedHint: "Express gratitude." },
+                            { aiPrompt: "You are most welcome. Consistent practice at home makes a huge difference.", aiPromptHindi: "आपका स्वागत है। घर पर निरंतर अभ्यास से बहुत फर्क पड़ता है।" , aiExpectedHint: "Agree to practice daily." },
                             { aiPrompt: "Shall we schedule our next review meeting for next month?", aiPromptHindi: "क्या हम अपनी अगली समीक्षा बैठक अगले महीने के लिए तय करें?", aiExpectedHint: "Confirm next month." },
                             { aiPrompt: "Thank you for taking the time to visit today. Have a wonderful afternoon!", aiPromptHindi: "आज आने के लिए समय निकालने के लिए धन्यवाद। आपकी दोपहर शुभ हो!", aiExpectedHint: "Say thank you and goodbye." },
                             { aiPrompt: "Goodbye! Take care.", aiPromptHindi: "अलविदा! अपना ख्याल रखें।", aiExpectedHint: "Say goodbye back." }
@@ -334,8 +334,8 @@ const appData = {
                     role2: {
                         name: "Teacher (You) & Parent (AI)",
                         turns: [
-                            { aiPrompt: "Hello! Thank you for coming to the parent-teacher meeting today.", aiPromptHindi: "नमस्ते! आज माता-पिता-शिक्षक बैठक में आने के लिए धन्यवाद।" , aiExpectedHint: "Greet the teacher and ask how your child is doing." },
-                            { aiPrompt: "Your daughter is very polite, but she needs to speak up more during class discussions.", aiPromptHindi: "आपकी बेटी बहुत विनम्र है, लेकिन उसे कक्षा की चर्चाओं में अधिक खुलकर बोलने की जरूरत है।" , aiExpectedHint: "Acknowledge and say you will encourage her at home." }
+                            { aiPrompt: "Hello teacher, how is my child performing in class this term?", aiPromptHindi: "नमस्ते टीचर, इस टर्म में मेरा बच्चा कक्षा में कैसा प्रदर्शन कर रहा है?" , aiExpectedHint: "Greet the parent and comment on their general performance." },
+                            { aiPrompt: "She is doing great in science, but her handwriting needs some improvement.", aiPromptHindi: "वह विज्ञान में बहुत अच्छा कर रही है, लेकिन उसकी लिखावट में कुछ सुधार की आवश्यकता है।" , aiExpectedHint: "Acknowledge and say you will practice writing with her at home." }
                         ]
                     }
                 },
