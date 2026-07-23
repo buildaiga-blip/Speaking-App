@@ -103,10 +103,10 @@
         <!-- Footer / Controls -->
         <footer class="p-3 sm:p-4 bg-white border-t border-slate-100 space-y-2 mt-auto">
             <div class="flex items-center space-x-2">
-                <button onclick="startListening()" id="startBtn" disabled class="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center space-x-1 shadow transition">
+                <button id="startBtn" disabled class="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center space-x-1 shadow transition">
                     <span>▶ Start Speaking</span>
                 </button>
-                <button onclick="stopListening()" id="stopBtn" disabled class="flex-1 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center space-x-1 shadow transition">
+                <button id="stopBtn" disabled class="flex-1 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center space-x-1 shadow transition">
                     <span>⏹ Stop</span>
                 </button>
                 <button onclick="explainGrammar()" class="bg-slate-100 hover:bg-slate-200 px-3 sm:px-4 py-3 rounded-xl text-slate-700 font-medium text-xs sm:text-sm transition border">
@@ -132,12 +132,38 @@
         let isConversationActive = false;
         let isAISpeaking = false;
 
+        // Bind touch and click listeners explicitly for mobile responsiveness
+        document.addEventListener("DOMContentLoaded", () => {
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+
+            startBtn.addEventListener('click', startListening);
+            startBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                startListening();
+            });
+
+            stopBtn.addEventListener('click', stopListening);
+            stopBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                stopListening();
+            });
+        });
+
+        function unlockAudioContext() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                // Dummy utterance to unlock mobile Web Speech API pipeline on touch
+                const blankUtterance = new SpeechSynthesisUtterance("");
+                window.speechSynthesis.speak(blankUtterance);
+            }
+        }
+
         function speakAI(text) {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 isAISpeaking = true;
                 
-                // Keep Start button disabled while AI is speaking
                 const startBtn = document.getElementById('startBtn');
                 startBtn.disabled = true;
                 startBtn.classList.add('opacity-50');
@@ -146,7 +172,7 @@
                 utterance.lang = 'en-US';
                 utterance.rate = 0.95;
 
-                utterance.onend = function() {
+                const enableMic = () => {
                     isAISpeaking = false;
                     if (isConversationActive && !isRecording) {
                         startBtn.disabled = false;
@@ -154,15 +180,20 @@
                     }
                 };
 
-                utterance.onerror = function() {
-                    isAISpeaking = false;
-                    if (isConversationActive && !isRecording) {
-                        startBtn.disabled = false;
-                        startBtn.classList.remove('opacity-50');
-                    }
-                };
+                utterance.onend = enableMic;
+                utterance.onerror = enableMic;
 
                 window.speechSynthesis.speak(utterance);
+
+                // Fail-safe fallback timer for mobile browsers where speech events fail to fire
+                setTimeout(() => {
+                    if (isAISpeaking) {
+                        enableMic();
+                    }
+                }, 5000);
+            } else {
+                isAISpeaking = false;
+                document.getElementById('startBtn').disabled = false;
             }
         }
 
@@ -284,6 +315,7 @@
         }
 
         function startConversation() {
+            unlockAudioContext();
             isConversationActive = true;
             currentTurnIndex = 0;
             const startConvBtn = document.getElementById('startConversationBtn');
@@ -353,7 +385,7 @@
             if (!isConversationActive || isAISpeaking) return;
 
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert("Speech recognition is not supported in this browser. Please open this file in Google Chrome.");
+                alert("Speech recognition is not supported in this browser. Please open this file in Google Chrome or mobile Safari.");
                 return;
             }
 
@@ -387,13 +419,19 @@
                 }
             };
 
-            recognition.start();
+            try {
+                recognition.start();
+            } catch (err) {
+                resetMicButtons();
+            }
         }
 
         function stopListening() {
             if(recognition && isRecording) {
                 isRecording = false;
-                recognition.stop();
+                try {
+                    recognition.stop();
+                } catch(e) {}
             }
             resetMicButtons();
         }
@@ -433,7 +471,6 @@
             const expectedHint = (currentTurn.aiExpectedHint || "").toLowerCase();
             const userSpeechLower = speechToText.toLowerCase();
 
-            // Simple keyword / context relevance check
             let matchCount = 0;
             const hintWords = expectedHint.replace(/[^a-zA-Z ]/g, "").split(/\s+/).filter(w => w.length > 2);
             
@@ -443,12 +480,11 @@
                 });
             }
 
-            let marksObtained = 6; // Base marks for answering
+            let marksObtained = 6;
             let feedbackMessage = "";
             let isRelevant = false;
 
             if (hintWords.length === 0 || matchCount > 0 || userSpeechLower.length > 5) {
-                // Relevant context found or reasonable sentence length
                 isRelevant = true;
                 marksObtained = Math.min(10, 7 + (matchCount * 2));
                 feedbackMessage = `Good context match! Your reply fit the conversation flow well.`;
@@ -457,7 +493,6 @@
                 feedbackMessage = `Your response was recorded, but try to align closer with the hint: "${currentTurn.aiExpectedHint}".`;
             }
 
-            // Style feedback box based on evaluation
             feedbackBox.className = isRelevant 
                 ? "border p-3 rounded-xl text-xs space-y-2 bg-emerald-50 border-emerald-200 text-emerald-900" 
                 : "border p-3 rounded-xl text-xs space-y-2 bg-amber-50 border-amber-200 text-amber-900";
