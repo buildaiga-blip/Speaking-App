@@ -22,7 +22,7 @@
         </div>
     </aside>
 
-    <!-- App Container (Locked Screen Layout) -->
+    <!-- App Container -->
     <div class="flex-1 w-full max-w-4xl mx-auto bg-white shadow-xl flex flex-col h-full overflow-hidden">
         
         <!-- Header -->
@@ -81,8 +81,23 @@
                 </div>
             </section>
 
+            <!-- Controls (Positioned at Top of Chat) -->
+            <section class="bg-white p-2 rounded-xl border border-slate-200 shadow-sm space-y-2 sticky top-0 z-10">
+                <div class="flex items-center space-x-2">
+                    <button id="startBtn" disabled class="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-2.5 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center space-x-1 shadow transition">
+                        <span>▶ Start Speaking</span>
+                    </button>
+                    <button id="stopBtn" disabled class="flex-1 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-2.5 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center space-x-1 shadow transition">
+                        <span>⏹ Stop</span>
+                    </button>
+                    <button onclick="explainGrammar()" class="bg-slate-100 hover:bg-slate-200 px-3 py-2.5 rounded-xl text-slate-700 font-medium text-xs sm:text-sm transition border">
+                        💡 Grammar
+                    </button>
+                </div>
+            </section>
+
             <!-- Chat / Interaction Box -->
-            <div id="chatContainer" class="space-y-3 pb-2">
+            <div id="chatContainer" class="space-y-3 pb-4">
                 <div class="text-slate-400 text-center text-xs py-6 italic">Click "Start Conversation" above to begin this scenario.</div>
             </div>
 
@@ -99,21 +114,6 @@
             </div>
 
         </main>
-
-        <!-- Footer / Controls (Pinned cleanly to bottom) -->
-        <footer class="p-3 sm:p-4 bg-white border-t border-slate-200 space-y-2 flex-shrink-0 shadow-lg">
-            <div class="flex items-center space-x-2">
-                <button id="startBtn" disabled class="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center space-x-1 shadow transition">
-                    <span>▶ Start Speaking</span>
-                </button>
-                <button id="stopBtn" disabled class="flex-1 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center space-x-1 shadow transition">
-                    <span>⏹ Stop</span>
-                </button>
-                <button onclick="explainGrammar()" class="bg-slate-100 hover:bg-slate-200 px-3 sm:px-4 py-3 rounded-xl text-slate-700 font-medium text-xs sm:text-sm transition border">
-                    💡 Grammar
-                </button>
-            </div>
-        </footer>
 
     </div>
 
@@ -132,26 +132,27 @@
         let isConversationActive = false;
         let isAISpeaking = false;
 
-        // Mobile touch & click bindings
+        // Mobile touch & click event binding ensuring direct synchronous execution context
         document.addEventListener("DOMContentLoaded", () => {
             const startBtn = document.getElementById('startBtn');
             const stopBtn = document.getElementById('stopBtn');
 
-            const triggerStart = (e) => {
+            const handleStartAction = (e) => {
                 e.preventDefault();
+                unlockAudioContext();
                 startListening();
             };
 
-            const triggerStop = (e) => {
+            const handleStopAction = (e) => {
                 e.preventDefault();
                 stopListening();
             };
 
-            startBtn.addEventListener('click', startListening);
-            startBtn.addEventListener('touchend', triggerStart, { passive: false });
+            startBtn.addEventListener('click', handleStartAction);
+            startBtn.addEventListener('touchend', handleStartAction, { passive: false });
 
-            stopBtn.addEventListener('click', stopListening);
-            stopBtn.addEventListener('touchend', triggerStop, { passive: false });
+            stopBtn.addEventListener('click', handleStopAction);
+            stopBtn.addEventListener('touchend', handleStopAction, { passive: false });
         });
 
         function unlockAudioContext() {
@@ -356,8 +357,6 @@
             
             appendSidebarMessage('AI', currentTurn.aiPrompt);
             speakAI(currentTurn.aiPrompt);
-            const mainContainer = document.querySelector('main');
-            mainContainer.scrollTo({ top: mainContainer.scrollHeight, behavior: 'smooth' });
         }
 
         function appendSidebarMessage(sender, text) {
@@ -389,23 +388,23 @@
         function startListening() {
             if (!isConversationActive || isAISpeaking) return;
 
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert("Speech recognition is not supported in this browser. Please open this page in Google Chrome or mobile Safari.");
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                alert("Speech recognition is not supported on this browser/device. Please open this link directly in Google Chrome (Android) or Safari (iOS).");
                 return;
             }
 
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            
             try {
                 if (recognition) {
-                    recognition.stop();
+                    recognition.abort();
                 }
             } catch(e) {}
 
             recognition = new SpeechRecognition();
             recognition.lang = 'en-US';
             recognition.interimResults = false;
-            recognition.continuous = false;
+            recognition.maxAlternatives = 1;
 
             const startBtn = document.getElementById('startBtn');
             const stopBtn = document.getElementById('stopBtn');
@@ -420,7 +419,7 @@
                 handleUserSpeech(speechToText);
             };
 
-            recognition.onerror = function() {
+            recognition.onerror = function(event) {
                 resetMicButtons();
             };
 
@@ -438,7 +437,7 @@
         }
 
         function stopListening() {
-            if(recognition && isRecording) {
+            if(recognition) {
                 isRecording = false;
                 try {
                     recognition.stop();
@@ -535,8 +534,6 @@
                     document.getElementById('startBtn').disabled = true;
                 }, 1000);
             }
-            const mainContainer = document.querySelector('main');
-            mainContainer.scrollTo({ top: mainContainer.scrollHeight, behavior: 'smooth' });
         }
 
         function explainGrammar() {
