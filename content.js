@@ -1,4 +1,4 @@
-// content.js - Full 20-Scenario Database for FluentSpoken App (Fully Corrected Role & Content Mapping)
+// content.js - Full 20-Scenario Database for FluentSpoken App (With Suggested Answer Audio Support)
 const appData = {
     students: {
         title: "Student Mode 🎓",
@@ -11,7 +11,7 @@ const appData = {
                     role1: {
                         name: "New Student (You) & Teacher (AI)",
                         turns: [
-                            { aiPrompt: "Hello everyone! Good morning. Please tell us your name and what you love studying.", aiPromptHindi: "नमस्ते साथियों! सुप्रभात। कृपया अपना नाम बताएं और आपको क्या पढ़ना पसंद है।", suggestedAnswer: "Good morning! My name is Rahul, and I really love studying science.", aiExpectedHint: "Say your name and favorite subject." },
+                            { aiPrompt: "Hello everyone! Good morning. Please tell us your name and what you love studying.", aiPromptHindi: "नमस्ते साथियों! सुप्रभात। कृपया अपना नाम बताएं और आपको क्या पढ़ना पसंद है।" , suggestedAnswer: "Good morning! My name is Rahul, and I really love studying science.", aiExpectedHint: "Say your name and favorite subject." },
                             { aiPrompt: "That's wonderful! Tell me, how long have you been studying at this school?", aiPromptHindi: "यह शानदार है! मुझे बताएं, आप इस स्कूल में कब से पढ़ रहे हैं?", suggestedAnswer: "I have been studying at this school for two years now.", aiExpectedHint: "Mention how many years or months." },
                             { aiPrompt: "Great. Who is your favorite teacher here so far?", aiPromptHindi: "बहुत बढ़िया। अब तक यहाँ आपके पसंदीदा शिक्षक कौन हैं?", suggestedAnswer: "My favorite teacher so far is Mrs. Sharma, our English teacher.", aiExpectedHint: "Name a teacher or subject." },
                             { aiPrompt: "Ah, they are a great teacher! What do you like most about their class?", aiPromptHindi: "आह, वे एक महान शिक्षक हैं! आपको उनकी कक्षा के बारे में सबसे ज्यादा क्या पसंद है?", suggestedAnswer: "I love her interactive storytelling style and how she explains difficult words.", aiExpectedHint: "Describe their teaching style." },
@@ -20,7 +20,7 @@ const appData = {
                             { aiPrompt: "That sounds exciting! Do you participate in annual school sports events?", aiPromptHindi: "यह रोमांचक लगता है! क्या आप वार्षिक स्कूल खेल आयोजनों में भाग लेते हैं?", suggestedAnswer: "Yes, I participate in the 100-meter running race every year.", aiExpectedHint: "Say yes or no with a brief reason." },
                             { aiPrompt: "If you could change one school rule, what would it be and why?", aiPromptHindi: "यदि आप स्कूल का एक नियम बदल सकते, तो वह क्या होता और क्यों?", suggestedAnswer: "I would add a longer lunch break so we could play sports comfortably.", aiExpectedHint: "Propose a fun or practical change." },
                             { aiPrompt: "What are your future career dreams or goals after finishing school?", aiPromptHindi: "स्कूल की पढ़ाई पूरी करने के बाद आपके भविष्य के करियर के सपने या लक्ष्य क्या हैं?", suggestedAnswer: "I want to become a software engineer and build helpful applications.", aiExpectedHint: "Mention your target career." },
-                            { aiPrompt: "Thank you for sharing! You did a fantastic job introducing yourself today.", aiPromptHindi: "साझा करने के लिए धन्यवाद! आज आपने बहुत अच्छा काम किया।", suggestedAnswer: "Thank you so much, teacher. It was nice talking to you.", aiExpectedHint: "Say thank you and wrap up." }
+                            { aiPrompt: "Thank you for sharing! You did a fantastic job introducing yourself today.", aiPromptHindi: "साझा करने के लिए धन्यवाद! आज आपने बहुत अच्छा काम किया।" , suggestedAnswer: "Thank you so much, teacher. It was nice talking to you.", aiExpectedHint: "Say thank you and wrap up." }
                         ]
                     },
                     role2: {
@@ -29,7 +29,7 @@ const appData = {
                             { aiPrompt: "Good morning, Teacher! My name is Alex, and I really love studying mathematics.", aiPromptHindi: "सुप्रभात, टीचर! मेरा नाम एलेक्स है, और मुझे गणित पढ़ना बहुत पसंद है." , suggestedAnswer: "Good morning, Alex! Welcome to our class. Which school did you study at previously?", aiExpectedHint: "Welcome Alex and ask about their previous school." },
                             { aiPrompt: "I studied at St. Mary's Public School for three years before moving here.", aiPromptHindi: "यहाँ आने से पहले मैंने तीन साल तक सेंट मैरी पब्लिक स्कूल में पढ़ाई की थी।" , suggestedAnswer: "That is a great school. What is your favorite part of mathematics?", aiExpectedHint: "Ask what their favorite part of math is." },
                             { aiPrompt: "I really enjoy solving algebra equations and puzzles.", aiPromptHindi: "मुझे बीजगणित के समीकरण और पहेलियाँ हल करना वास्तव में पसंद है।" , aiExpectedHint: "Praise their interest and ask if they need help settling in." },
-                            { aiPrompt: "Thank you, Teacher. Everyone has been very kind, and I am finding my way around nicely.", aiPromptHindi: "धन्यवाद, टीचर। हर कोई बहुत दयालु रहा है, और मैं आसानी से रास्ते ढूंढ रहा हूँ।" , aiExpectedHint: "Tell them to let you know if they have any questions." }
+                            { aiPrompt: "Thank you, Teacher. Everyone has been very kind, and I am finding my way around nicely.", aiPromptHindi: "धन्यवाद, टीचर। हर कोई बहुत दयालु रहा है, और मैं आसानी से रास्ते ढूंढ रहा हूँ।" , suggestedAnswer: "Tell them to let you know if they have any questions.", aiExpectedHint: "Ask if they need help." }
                         ]
                     }
                 },
@@ -44,7 +44,7 @@ const appData = {
                         name: "Student (You) & Librarian (AI)",
                         turns: [
                             { aiPrompt: "Good morning! Can I see your library card, please?", aiPromptHindi: "सुप्रभात! क्या मैं आपका पुस्तकालय कार्ड देख सकता हूँ?", suggestedAnswer: "Good morning! Yes, here is my library card.", aiExpectedHint: "Greet and hand over the card." },
-                            { aiPrompt: "Thank you. What kind of book are you looking for today?", aiPromptHindi: "धन्यवाद। आज आप किस प्रकार की किताब खोज रहे हैं?" , suggestedAnswer: "I am looking for a science fiction novel for my project assignment.", aiExpectedHint: "Mention a genre like science fiction or history." },
+                            { aiPrompt: "Thank you. What kind of book are you looking for today?", aiPromptHindi: "धन्यवाद। आज आप किस प्रकार की किताब खोज रहे हैं?", suggestedAnswer: "I am looking for a science fiction novel for my project assignment.", aiExpectedHint: "Mention a genre like science fiction or history." },
                             { aiPrompt: "We have a great new collection in that section. Do you have a specific author in mind?", aiPromptHindi: "हमारे पास उस खंड में एक शानदार नया संग्रह है। क्या आपके मन में कोई विशिष्ट लेखक है?", suggestedAnswer: "Yes, I am looking for something written by Isaac Asimov.", aiExpectedHint: "Name an author or say no." },
                             { aiPrompt: "Alright. The books you want are on aisle four. Did you find anything else?", aiPromptHindi: "ठीक है। आपकी मनपसंद किताबें चौथी पंक्ति में हैं। क्या आपको कुछ और मिला?", suggestedAnswer: "Yes, I also found an interesting astronomy book on aisle three.", aiExpectedHint: "Say you found one more book." },
                             { aiPrompt: "Let me scan these for you. You are borrowing two books today.", aiPromptHindi: "मुझे आपके लिए इन्हें स्कैन करने दें। आज आप दो किताबें उधार ले रहे हैं।" , suggestedAnswer: "That is correct, thank you very much.", aiExpectedHint: "Acknowledge this." },
@@ -173,7 +173,6 @@ const appData = {
                             { aiPrompt: "What time on Saturday is best for you?", aiPromptHindi: "शनिवार को आपके लिए कौन सा समय सबसे अच्छा है?", suggestedAnswer: "How about we meet around 10 AM in the morning?", aiExpectedHint: "Suggest morning, around 10 AM." },
                             { aiPrompt: "10 AM is great. Do we need to print anything for the teacher?", aiPromptHindi: "सुबह 10 बजे बढ़िया है। क्या हमें शिक्षक के लिए कुछ प्रिंट करने की आवश्यकता है?", suggestedAnswer: "Yes, we should print a brief summary report for submission.", aiExpectedHint: "Say yes, a summary report." },
                             { aiPrompt: "Got it. I will bring some snacks for us while we work.", aiPromptHindi: "समझ गया। काम करते समय मैं हमारे लिए कुछ स्नैक्स लाऊँगा।" , suggestedAnswer: "That is very sweet of you, thank you!", aiExpectedHint: "Appreciate the gesture." },
-                            { aiPrompt: "Awesome! See you on Saturday with the research data.", aiPromptHindi: "बहुत बढ़िया! शनिवार को शोध डेटा के साथ मिलते हैं।" , suggestedAnswer: "See you on Saturday! Goodbye." },
                             { aiPrompt: "Awesome! See you on Saturday with the research data.", aiPromptHindi: "बहुत बढ़िया! शनिवार को शोध डेटा के साथ मिलते हैं।", suggestedAnswer: "See you then, bye!", aiExpectedHint: "Say see you then." }
                         ]
                     },
@@ -204,7 +203,7 @@ const appData = {
                             { aiPrompt: "Ensure they bring plenty of hydration. It's going to be hot.", aiPromptHindi: "सुनिश्चित करें कि वे खूब सारा पानी लाएँ। बहुत गर्मी होने वाली है।" , suggestedAnswer: "I will make sure everyone brings extra water bottles.", aiExpectedHint: "Say you will ensure that." },
                             { aiPrompt: "Are the team jerseys washed and ready?", aiPromptHindi: "क्या टीम की जर्सी धुल कर तैयार है?", suggestedAnswer: "Yes, I collected all the jerseys yesterday and they are ready.", aiExpectedHint: "Say yes, they are collected." },
                             { aiPrompt: "Excellent. As the captain, I want you to keep their morale high.", aiPromptHindi: "बहुत बढ़िया। कप्तान के रूप में, मैं चाहता हूँ कि आप उनका मनोबल ऊंचा रखें।" , suggestedAnswer: "I will do my best to keep everyone motivated and positive.", aiExpectedHint: "Promise to motivate them." },
-                            { aiPrompt: "I trust you to lead us to victory. Rest well tonight.", aiPromptHindi: "मुझे आप पर भरोसा है कि आप हमें जीत की ओर ले जाएंगे। आज रात अच्छी तरह आराम करें।" , aiExpectedHint: "Thank you, Coach. Goodnight!" , suggestedAnswer: "Thank you for your trust, Coach. Goodnight!", aiExpectedHint: "Say thank you and goodnight." }
+                            { aiPrompt: "I trust you to lead us to victory. Rest well tonight.", aiPromptHindi: "मुझे आप पर भरोसा है कि आप हमें जीत की ओर ले जाएंगे। आज रात अच्छी तरह आराम करें।" , suggestedAnswer: "Thank you for your trust, Coach. Goodnight!", aiExpectedHint: "Say thank you and goodnight." }
                         ]
                     },
                     role2: {
@@ -230,14 +229,14 @@ const appData = {
                             { aiPrompt: "However, the syllabus clearly states a penalty for late submissions. Are you aware?", aiPromptHindi: "हालाँकि, पाठ्यक्रम में देर से जमा करने पर दंड का स्पष्ट उल्लेख है। क्या आप अवगत हैं?", suggestedAnswer: "Yes, I am fully aware of the course policy regarding late submissions.", aiExpectedHint: "Acknowledge the rule." },
                             { aiPrompt: "When exactly do you think you can submit the final draft to me?", aiPromptHindi: "आपको क्या लगता है कि आप मुझे अंतिम ड्राफ्ट ठीक कब तक जमा कर सकते हैं?", suggestedAnswer: "I can submit the final completed draft to you by tomorrow morning.", aiExpectedHint: "Propose a strict deadline (e.g., tomorrow morning)." },
                             { aiPrompt: "Tomorrow morning is acceptable. What specific topic were you researching?", aiPromptHindi: "कल सुबह स्वीकार्य है। आप किस विशिष्ट विषय पर शोध कर रहे थे?", suggestedAnswer: "I was researching the economic impacts of renewable energy adoption.", aiExpectedHint: "Mention a complex academic topic." },
-                            { aiPrompt: "That is quite a challenging topic. Have you gathered all your sources?", aiPromptHindi: "यह काफी चुनौतीपूर्ण विषय है। क्या आपने अपने सभी स्रोत एकत्र कर लिए हैं?", aiExpectedHint: "Confirm you have all citations ready.", suggestedAnswer: "Yes, all my research citations and references are fully organized." }
-                        ],
+                            { aiPrompt: "That is quite a challenging topic. Have you gathered all your sources?", aiPromptHindi: "यह काफी चुनौतीपूर्ण विषय है। क्या आपने अपने सभी स्रोत एकत्र कर लिए हैं?", suggestedAnswer: "Yes, all my research citations and references are fully organized.", aiExpectedHint: "Confirm you have all citations ready." }
+                        ]
                     },
                     role2: {
                         name: "Professor (You) & Student (AI)",
                         turns: [
                             { aiPrompt: "Good morning, Professor. I am very sorry, but I won't be able to submit my report today.", aiPromptHindi: "सुप्रभात, प्रोफेसर। मुझे बहुत खेद है, लेकिन मैं आज अपनी रिपोर्ट जमा नहीं कर पाऊंगा।" , suggestedAnswer: "Good morning. Can you please explain the reason for this delay?", aiExpectedHint: "Ask the student why there is a delay." },
-                            { aiPrompt: "I fell severely ill with a high fever over the weekend and couldn't complete the conclusion.", aiPromptHindi: "सप्ताहांत में मुझे तेज बुखार आ गया और मैं निष्कर्ष पूरा नहीं कर सका।" , aiExpectedHint: "Express concern, ask for a doctor's note, and set a new deadline." }
+                            { aiPrompt: "I fell severely ill with a high fever over the weekend and couldn't complete the conclusion.", aiPromptHindi: "सप्ताहांत में मुझे तेज बुखार आ गया और मैं निष्कर्ष पूरा नहीं कर सका।" , suggestedAnswer: "Express concern, ask for a doctor's note, and set a new deadline.", aiExpectedHint: "Set a new deadline." }
                         ]
                     }
                 },
@@ -288,7 +287,7 @@ const appData = {
                             { aiPrompt: "That is a violation of our hostel rules. Quiet hours start at 10 PM.", aiPromptHindi: "यह हमारे छात्रावास के नियमों का उल्लंघन है। शांत घंटे रात 10 बजे शुरू होते हैं।" , suggestedAnswer: "Yes, and it is seriously affecting my academic concentration.", aiExpectedHint: "Agree and say it's affecting your sleep." },
                             { aiPrompt: "I will speak to them tomorrow morning. Do you want me to issue a formal warning?", aiPromptHindi: "मैं कल सुबह उनसे बात करूंगा। क्या आप चाहते हैं कि मैं एक औपचारिक चेतावनी जारी करूँ?", suggestedAnswer: "A verbal warning would be great for now, thank you.", aiExpectedHint: "Request a verbal warning first." },
                             { aiPrompt: "Okay, I will handle it diplomatically. How are your studies going otherwise?", aiPromptHindi: "ठीक है, मैं इसे कूटनीतिक तरीके से संभाल लूंगा। वैसे आपकी पढ़ाई कैसी चल रही है?", suggestedAnswer: "My studies are going well, thanks for asking.", aiExpectedHint: "Say they are going well." },
-                            { aiPrompt: "If the noise continues tonight, please call my mobile number immediately.", aiPromptHindi: "यदि आज रात भी शोर जारी रहता है, तो कृपया मेरे मोबाइल नंबर पर तुरंत कॉल करें।" , suggestedAnswer: "I will do that, thank you for your support." , aiExpectedHint: "Note the instruction and say okay." },
+                            { aiPrompt: "If the noise continues tonight, please call my mobile number immediately.", aiPromptHindi: "यदि आज रात भी शोर जारी रहता है, तो कृपया मेरे मोबाइल नंबर पर तुरंत कॉल करें।" , suggestedAnswer: "I will do that, thank you for your support.", aiExpectedHint: "Note the instruction and say okay." },
                             { aiPrompt: "Don't let this stress you out. We will get it sorted.", aiPromptHindi: "इससे खुद को तनाव में न डालें। हम इसे सुलझा लेंगे।" , suggestedAnswer: "Thank you so much, Warden.", aiExpectedHint: "Thank the warden." },
                             { aiPrompt: "Have a peaceful night. You may go back to your room now.", aiPromptHindi: "आपकी रात शांतिपूर्ण हो। अब आप अपने कमरे में वापस जा सकते हैं।" , suggestedAnswer: "Goodnight, Warden.", aiExpectedHint: "Say goodnight and leave." }
                         ]
@@ -319,9 +318,9 @@ const appData = {
                             { aiPrompt: "Hello! Thank you for coming in today. How can I help you regarding your child's progress?", aiPromptHindi: "नमस्ते! आज आने के लिए धन्यवाद। आपके बच्चे की प्रगति के संबंध में मैं आपकी क्या मदद कर सकता हूँ?", suggestedAnswer: "Hello! I wanted to check how my son is performing in his classes this term.", aiExpectedHint: "Ask about academic performance." },
                             { aiPrompt: "Your child is doing quite well in math, but needs a bit more focus on reading.", aiPromptHindi: "आपका बच्चा गणित में काफी अच्छा कर रहा है, लेकिन उसे पढ़ने पर थोड़ा और ध्यान देने की जरूरत है।" , suggestedAnswer: "I see. I will make sure he practices reading more at home.", aiExpectedHint: "Acknowledge the feedback." },
                             { aiPrompt: "We are organizing an extra reading club. Would you like to enroll him?", aiPromptHindi: "हम एक अतिरिक्त रीडिंग क्लब आयोजित कर रहे हैं। क्या आप उसका नामांकन कराना चाहेंगे?", suggestedAnswer: "That sounds helpful. What are the timings for this club?", aiExpectedHint: "Ask about timings." },
-                            { aiPrompt: "It runs from 3 PM to 4 PM every Tuesday and Thursday.", aiPromptHindi: "यह हर मंगलवार और गुरुवार को दोपहर 3 बजे से शाम 4 बजे तक चलता है।" , aiExpectedHint: "Agree on the schedule." },
+                            { aiPrompt: "It runs from 3 PM to 4 PM every Tuesday and Thursday.", aiPromptHindi: "यह हर मंगलवार और गुरुवार को दोपहर 3 बजे से शाम 4 बजे तक चलता है।" , suggestedAnswer: "Agree on the schedule.", aiExpectedHint: "Agree on the schedule." },
                             { aiPrompt: "Are there any specific topics at home where he struggles with homework?", aiPromptHindi: "क्या घर पर कोई ऐसे खास विषय हैं जहाँ उसे होमवर्क में परेशानी होती है?", suggestedAnswer: "Yes, he sometimes struggles with spellings and English grammar rules.", aiExpectedHint: "Mention spelling or grammar." },
-                            { aiPrompt: "I will share a few extra storybooks to help improve his vocabulary.", aiPromptHindi: "मैं उसकी शब्दावली को सुधारने में मदद करने के लिए कुछ अतिरिक्त कहानी की किताबें साझा करूंगी।" , aiExpectedHint: "Express gratitude." },
+                            { aiPrompt: "I will share a few extra storybooks to help improve his vocabulary.", aiPromptHindi: "मैं उसकी शब्दावली को सुधारने में मदद करने के लिए कुछ अतिरिक्त कहानी की किताबें साझा करूंगी।" , suggestedAnswer: "Express gratitude.", aiExpectedHint: "Express gratitude." },
                             { aiPrompt: "You are most welcome. Consistent practice at home makes a huge difference.", aiPromptHindi: "आपका स्वागत है। घर पर निरंतर अभ्यास से बहुत फर्क पड़ता है।" , suggestedAnswer: "I completely agree. I will set aside time daily for him.", aiExpectedHint: "Agree to practice daily." },
                             { aiPrompt: "Shall we schedule our next review meeting for next month?", aiPromptHindi: "क्या हम अपनी अगली समीक्षा बैठक अगले महीने के लिए तय करें?", suggestedAnswer: "Yes, next month works perfectly for me.", aiExpectedHint: "Confirm next month." },
                             { aiPrompt: "Thank you for taking the time to visit today. Have a wonderful afternoon!", aiPromptHindi: "आज आने के लिए समय निकालने के लिए धन्यवाद। आपकी दोपहर शुभ हो!", suggestedAnswer: "Thank you so much, teacher. Have a good day!", aiExpectedHint: "Say thank you and goodbye." },
@@ -346,7 +345,7 @@ const appData = {
                     role1: {
                         name: "Customer (You) & Vendor (AI)",
                         turns: [
-                            { aiPrompt: "Fresh vegetables! Come look! What do you need today, madam?", aiPromptHindi: "ताज़ी सब्जियां! आओ देखो! मैडम, आज आपको क्या चाहिए?", suggestedAnswer: "I need fresh potatoes and onions today. How much are they?", aiExpectedHint: "Ask for potatoes and onions." },
+                            { aiPrompt: "Fresh vegetables! Come look! What do you need today, madam?", aiPromptHindi: "ताज़ी सब्जियां! आओ देखों! मैडम, आज आपको क्या चाहिए?", suggestedAnswer: "I need fresh potatoes and onions today. How much are they?", aiExpectedHint: "Ask for potatoes and onions." },
                             { aiPrompt: "The potatoes are fifty rupees a kilo, and onions are sixty rupees a kilo.", aiPromptHindi: "आलू पचास रुपये किलो है, और प्याज साठ रुपये किलो।" , suggestedAnswer: "That sounds a bit too expensive for regular daily shopping.", aiExpectedHint: "Say that's too expensive." },
                             { aiPrompt: "Prices have gone up everywhere! How much do you want to pay?", aiPromptHindi: "हर जगह कीमतें बढ़ गई हैं! आप कितना भुगतान करना चाहते हैं?", suggestedAnswer: "Can you give the potatoes for forty rupees a kilo?", aiExpectedHint: "Offer forty rupees for potatoes." },
                             { aiPrompt: "Forty is very low. I will give it to you for forty-five. How many kilos?", aiPromptHindi: "चालीस बहुत कम है। मैं आपको पैंतालीस में दे दूंगा। कितने किलो?", suggestedAnswer: "Alright, give me two kilos of potatoes.", aiExpectedHint: "Ask for two kilos of potatoes." },
@@ -355,7 +354,7 @@ const appData = {
                             { aiPrompt: "Great. Do you need any fresh coriander or green chilies?", aiPromptHindi: "बढ़िया। क्या आपको ताजा धनिया या हरी मिर्च चाहिए?", suggestedAnswer: "Yes, please add some fresh coriander and green chilies for free.", aiExpectedHint: "Ask for some free chilies." },
                             { aiPrompt: "Haha, you drive a hard bargain! I will put a few chilies for free.", aiPromptHindi: "हाहा, आप बहुत मोलभाव करती हैं! मैं कुछ मिर्च मुफ्त में डाल दूंगा।" , suggestedAnswer: "Thank you so much, you are very kind.", aiExpectedHint: "Thank the vendor." },
                             { aiPrompt: "Your total is one hundred and forty-five rupees, please.", aiPromptHindi: "आपका कुल एक सौ पैंतालीस रुपये है, कृपया।" , suggestedAnswer: "Here is a two-hundred-rupee note. Please give my change.", aiExpectedHint: "Hand over the money." },
-                            { aiPrompt: "Here is your change and your bags. Come again soon!", aiPromptHindi: "यह रहा आपका छु्ट्टा और आपके बैग। जल्दी ही फिर आएं!", aiExpectedHint: "Thank you, goodbye!" , aiExpectedHint: "Say goodbye." }
+                            { aiPrompt: "Here is your change and your bags. Come again soon!", aiPromptHindi: "यह रहा आपका छु्ट्टा और आपके बैग। जल्दी ही फिर आएं!", suggestedAnswer: "Thank you, goodbye!", aiExpectedHint: "Say goodbye." }
                         ]
                     },
                     role2: {
@@ -392,7 +391,7 @@ const appData = {
                         name: "Plumber (You) & Homeowner (AI)",
                         turns: [
                             { aiPrompt: "Hello, is this the plumbing service? My bathroom tap is leaking heavily.", aiPromptHindi: "नमस्ते, क्या यह प्लंबिंग सेवा है? मेरे बाथरूम का नल बहुत लीक हो रहा है।", suggestedAnswer: "Hello! Yes, this is Apex Plumbing. Please share your apartment address so I can send someone.", aiExpectedHint: "Acknowledge the issue and ask for their address." },
-                            { aiPrompt: "I live at Flat 402, Green Valley Apartments. Can you come today?", aiPromptHindi: "मैं फ्लैट 402, ग्रीन वैली अपार्टमेंट्स में रहती हूँ। क्या आप आज आ सकते हैं?" , aiExpectedHint: "Yes, our technician will reach your location within two hours." }
+                            { aiPrompt: "I live at Flat 402, Green Valley Apartments. Can you come today?", aiPromptHindi: "मैं फ्लैट 402, ग्रीन वैली अपार्टमेंट्स में रहती हूँ। क्या आप आज आ सकते हैं?" , suggestedAnswer: "Yes, our technician will reach your location within two hours.", aiExpectedHint: "Confirm technician visit." }
                         ]
                     }
                 },
@@ -611,3 +610,28 @@ const appData = {
         ]
     }
 };
+
+// UI Element Generator / Helper to include Listen button next to Suggested Answers
+function renderSuggestedAnswerWithAudio(suggestedText) {
+    return `
+        <div class="suggested-answer-container" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #f0f4f8; padding: 10px 14px; border-radius: 8px; margin-top: 8px;">
+            <span class="suggested-text" style="color: #1f2937; font-size: 14px;"><strong>Suggested:</strong> ${suggestedText}</span>
+            <button class="listen-suggested-btn" onclick="playSuggestedAudio('${suggestedText.replace(/'/g, "\\'")}')" style="background: #2563eb; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 4px;">
+                🔊 Listen
+            </button>
+        </div>
+    `;
+}
+
+// Audio Speech Helper Function to Listen to Suggested Answers (or AI prompts)
+function playSuggestedAudio(text) {
+    if (!('speechSynthesis' in window)) {
+        alert("Text-to-speech is not supported in this browser.");
+        return;
+    }
+    window.speechSynthesis.cancel(); // Stop any ongoing speech
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9; // Natural speaking pace
+    window.speechSynthesis.speak(utterance);
+}

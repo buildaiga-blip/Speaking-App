@@ -363,12 +363,12 @@
                         <p>${currentTurn.aiPrompt}</p>
                         <p class="text-xs text-slate-500 italic">${currentTurn.aiPromptHindi}</p>
                         
-                        <!-- Fully Drafted Suggested Answer Block -->
+                        <!-- Fully Drafted Suggested Answer Block Integrated with renderSuggestedAnswerWithAudio -->
                         <div class="bg-white border border-indigo-200 p-2.5 rounded-xl text-xs space-y-1 shadow-sm">
                             <div class="font-bold text-indigo-900 flex items-center justify-between">
                                 <span>📖 Full Drafted Suggested Answer (Read & Learn):</span>
                             </div>
-                            <p class="text-indigo-950 font-medium bg-indigo-50/70 p-2 rounded-lg border border-indigo-100">${fullSuggestedAnswer}</p>
+                            ${typeof renderSuggestedAnswerWithAudio === 'function' ? renderSuggestedAnswerWithAudio(fullSuggestedAnswer) : `<p class="text-indigo-950 font-medium bg-indigo-50/70 p-2 rounded-lg border border-indigo-100">${fullSuggestedAnswer}</p>`}
                         </div>
 
                         <button onclick="speakAI('${currentTurn.aiPrompt.replace(/'/g, "\\'")}')" class="text-[11px] text-indigo-600 font-bold flex items-center space-x-1 hover:underline">
