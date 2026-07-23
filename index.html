@@ -2,15 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FluentSpoken - AI Voice Speaking Partner</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Force absolute viewport fit on mobile browsers */
+        html, body {
+            height: 100%;
+            height: 100dvh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans flex flex-col lg:flex-row h-[100dvh] overflow-hidden">
+<body class="bg-slate-50 text-slate-800 font-sans flex flex-col lg:flex-row w-screen">
 
     <!-- Sidebar for Chat Display Window (Hidden on mobile, visible on large screens) -->
     <aside class="hidden lg:flex lg:w-80 bg-white border-r border-slate-200 flex-col h-full shadow-sm z-10">
-        <div class="p-4 bg-indigo-50 border-b border-indigo-100 flex items-center justify-between">
+        <div class="p-4 bg-indigo-50 border-b border-indigo-100 flex items-center justify-between flex-shrink-0">
             <h2 class="font-bold text-indigo-950 text-sm flex items-center space-x-1.5">
                 <span>💬</span>
                 <span>Conversation Log</span>
@@ -23,7 +33,7 @@
     </aside>
 
     <!-- App Container -->
-    <div class="flex-1 w-full h-[100dvh] lg:h-full bg-white shadow-xl flex flex-col justify-between overflow-hidden">
+    <div class="flex-1 w-full h-full bg-white shadow-xl flex flex-col justify-between overflow-hidden">
         
         <!-- Header -->
         <header class="bg-indigo-600 text-white p-3 sm:p-4 flex justify-between items-center shadow-md flex-shrink-0">
@@ -40,7 +50,7 @@
         <main class="flex-1 p-3 sm:p-4 overflow-y-auto space-y-4">
             
             <!-- Level Selector -->
-            <section class="bg-slate-100 p-3 rounded-xl">
+            <section class="bg-slate-100 p-3 rounded-xl flex-shrink-0">
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Select Your Level</label>
                 <div class="grid grid-cols-3 gap-2">
                     <button onclick="setLevel('Basic')" class="level-btn bg-indigo-600 text-white text-sm py-1.5 rounded-lg font-medium transition shadow-sm">Basic</button>
@@ -50,14 +60,14 @@
             </section>
 
             <!-- Scenario Selector -->
-            <section class="bg-slate-100 p-3 rounded-xl">
+            <section class="bg-slate-100 p-3 rounded-xl flex-shrink-0">
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Select Scenario Topic</label>
                 <select id="scenarioSelector" onchange="changeScenario()" class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg p-2 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 </select>
             </section>
 
             <!-- Role Selector & Learning Mission -->
-            <section class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 shadow-sm space-y-3">
+            <section class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 shadow-sm space-y-3 flex-shrink-0">
                 <div class="flex justify-between items-center">
                     <span id="levelBadge" class="bg-indigo-200 text-indigo-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Basic Level</span>
                     <span id="turnIndicator" class="text-xs bg-indigo-600 text-white px-2 py-0.5 rounded-full font-semibold">Turn 1 of 10</span>
@@ -82,12 +92,12 @@
             </section>
 
             <!-- Chat / Interaction Box -->
-            <div id="chatContainer" class="space-y-3 pb-2">
+            <div id="chatContainer" class="space-y-3 pb-4">
                 <div class="text-slate-400 text-center text-xs py-6 italic">Click "Start Conversation" above to begin this scenario.</div>
             </div>
 
             <!-- Pronunciation Feedback Box with Ratings and Marks -->
-            <div id="feedbackBox" class="hidden bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-xs text-emerald-900 space-y-2">
+            <div id="feedbackBox" class="hidden bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-xs text-emerald-900 space-y-2 flex-shrink-0">
                 <div class="flex justify-between items-center">
                     <span class="font-bold">✨ Evaluation & Feedback:</span>
                     <span id="marksBadge" class="bg-emerald-600 text-white font-bold px-2 py-0.5 rounded text-[10px]">Marks: 0/10</span>
@@ -100,8 +110,8 @@
 
         </main>
 
-        <!-- Footer / Controls with Start & Stop Buttons (Fixed to bottom) -->
-        <footer class="p-3 sm:p-4 bg-white border-t border-slate-200 space-y-2 flex-shrink-0 shadow-lg">
+        <!-- Footer / Controls with Start & Stop Buttons (Strictly locked to bottom) -->
+        <footer class="p-3 bg-white border-t border-slate-200 space-y-2 flex-shrink-0 shadow-2xl z-20">
             <div class="flex items-center space-x-2">
                 <button onclick="startListening()" id="startBtn" disabled class="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center space-x-1 shadow-md transition">
                     <span>▶ Start Speaking</span>
@@ -225,6 +235,7 @@
 
         function resetConversationState() {
             isConversationActive = false;
+            currentTurnIndex = 0;
             document.getElementById('startConversationBtn').disabled = false;
             document.getElementById('startConversationBtn').className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-xl shadow transition text-xs flex items-center justify-center space-x-1.5";
             document.getElementById('startConversationBtn').innerText = "🚀 Start Conversation";
@@ -256,6 +267,7 @@
 
         function startConversation() {
             isConversationActive = true;
+            currentTurnIndex = 0; // Reset turn index properly on start
             const startConvBtn = document.getElementById('startConversationBtn');
             startConvBtn.disabled = true;
             startConvBtn.className = "w-full bg-slate-300 text-slate-500 font-semibold py-2.5 px-4 rounded-xl text-xs cursor-not-allowed flex items-center justify-center space-x-1.5";
@@ -404,12 +416,13 @@
             const scenario = appData[currentMode].scenarios[currentScenarioIndex];
             const roleData = scenario.roles[selectedRoleKey];
 
+            // Wait for user input rather than auto-incrementing; increment only after speech input is received
             if (currentTurnIndex < roleData.turns.length - 1) {
                 currentTurnIndex++;
                 setTimeout(() => {
                     updateChatPrompt();
                     chatContainer.scrollTop = chatContainer.scrollHeight;
-                }, 1000);
+                }, 1500);
             } else {
                 setTimeout(() => {
                     const completionMsg = "Congratulations! You successfully completed all turns for this role-play scenario.";
