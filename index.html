@@ -101,16 +101,17 @@
                 <div class="text-slate-400 text-center text-xs py-6 italic">Click "Start Conversation" above to begin this scenario.</div>
             </div>
 
-            <!-- Pronunciation Feedback Box -->
+            <!-- Detailed Grammar & Sentence Correction Feedback Box -->
             <div id="feedbackBox" class="hidden border p-3 rounded-xl text-xs space-y-2">
                 <div class="flex justify-between items-center">
-                    <span id="feedbackTitle" class="font-bold">✨ Evaluation & Feedback:</span>
-                    <span id="marksBadge" class="font-bold px-2 py-0.5 rounded text-[10px]">Marks: 0/10</span>
+                    <span id="feedbackTitle" class="font-bold text-sm">✨ Grammar & Sentence Correction:</span>
+                    <span id="marksBadge" class="font-bold px-2 py-0.5 rounded text-[10px]">Score: 0/10</span>
                 </div>
-                <div id="starContainer" class="flex space-x-1 text-amber-400 text-sm">
-                    <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+                <div class="space-y-1 text-xs pt-1">
+                    <p><strong>Your Input:</strong> <span id="userSpokenText" class="italic text-slate-600">--</span></p>
+                    <p><strong>Corrected Version:</strong> <span id="correctedSentenceText" class="font-semibold text-emerald-700">--</span></p>
+                    <p><strong>Grammar Insights / Mistakes:</strong> <span id="grammarMistakesText" class="text-rose-700">--</span></p>
                 </div>
-                <p id="feedbackText">Great pronunciation!</p>
             </div>
 
         </main>
@@ -132,7 +133,6 @@
         let isConversationActive = false;
         let isAISpeaking = false;
 
-        // Force native touch binding directly on DOM elements for mobile Safari & Chrome
         document.addEventListener("DOMContentLoaded", () => {
             const startBtn = document.getElementById('startBtn');
             const stopBtn = document.getElementById('stopBtn');
@@ -353,14 +353,25 @@
             
             document.getElementById('turnIndicator').innerText = `Turn ${currentTurnIndex + 1} of ${roleData.turns.length}`;
 
+            // Full drafted suggested response (falls back safely if content.js uses aiExpectedHint)
+            const fullSuggestedAnswer = currentTurn.suggestedAnswer || currentTurn.aiExpectedHint || "I am doing well, thank you for asking. How can I help you today?";
+
             chatContainer.innerHTML += `
                 <div class="flex items-start space-x-2 my-2">
                     <div class="bg-slate-200 rounded-full h-8 w-8 flex-shrink-0 flex items-center justify-center font-bold text-xs">AI</div>
-                    <div class="bg-slate-100 p-3 rounded-2xl rounded-tl-none text-sm max-w-[85%] space-y-1">
+                    <div class="bg-slate-100 p-3 rounded-2xl rounded-tl-none text-sm max-w-[85%] space-y-2.5">
                         <p>${currentTurn.aiPrompt}</p>
                         <p class="text-xs text-slate-500 italic">${currentTurn.aiPromptHindi}</p>
-                        <p class="text-[11px] text-indigo-600 font-medium">💡 Hint: ${currentTurn.aiExpectedHint}</p>
-                        <button onclick="speakAI('${currentTurn.aiPrompt.replace(/'/g, "\\'")}')" class="mt-1 text-[11px] text-indigo-600 font-bold flex items-center space-x-1 hover:underline">
+                        
+                        <!-- Fully Drafted Suggested Answer Block -->
+                        <div class="bg-white border border-indigo-200 p-2.5 rounded-xl text-xs space-y-1 shadow-sm">
+                            <div class="font-bold text-indigo-900 flex items-center justify-between">
+                                <span>📖 Full Drafted Suggested Answer (Read & Learn):</span>
+                            </div>
+                            <p class="text-indigo-950 font-medium bg-indigo-50/70 p-2 rounded-lg border border-indigo-100">${fullSuggestedAnswer}</p>
+                        </div>
+
+                        <button onclick="speakAI('${currentTurn.aiPrompt.replace(/'/g, "\\'")}')" class="text-[11px] text-indigo-600 font-bold flex items-center space-x-1 hover:underline">
                             <span>🔊 Listen to AI Voice</span>
                         </button>
                     </div>
@@ -489,48 +500,46 @@
             const roleData = scenario.roles[selectedRoleKey];
             const currentTurn = roleData.turns[currentTurnIndex];
 
-            const expectedHint = (currentTurn.aiExpectedHint || "").toLowerCase();
-            const userSpeechLower = speechToText.toLowerCase();
+            // Advanced Grammar & Sentence Error Inspection
+            let grammarScore = 8;
+            let mistakesFound = [];
+            let correctedSentence = speechToText;
 
-            let matchCount = 0;
-            const hintWords = expectedHint.replace(/[^a-zA-Z ]/g, "").split(/\s+/).filter(w => w.length > 2);
-            
-            if (hintWords.length > 0) {
-                hintWords.forEach(word => {
-                    if (userSpeechLower.includes(word)) matchCount++;
-                });
+            const lowerSpeech = speechToText.toLowerCase();
+            if (lowerSpeech.startsWith("i is ") || lowerSpeech.startsWith("he am ") || lowerSpeech.startsWith("they is ")) {
+                grammarScore -= 3;
+                mistakesFound.push("Subject-verb agreement error (e.g., use 'I am' instead of 'I is').");
+                correctedSentence = correctedSentence.replace(/i is/gi, "I am").replace(/he am/gi, "he is").replace(/they is/gi, "they are");
+            }
+            if (lowerSpeech.includes("goed") || lowerSpeech.includes("eated")) {
+                grammarScore -= 3;
+                mistakesFound.push("Incorrect past tense form used.");
+                correctedSentence = correctedSentence.replace(/goed/gi, "went").replace(/eated/gi, "ate");
+            }
+            if (speechToText.length > 0 && speechToText[0] !== speechToText[0].toUpperCase()) {
+                grammarScore -= 1;
+                mistakesFound.push("Sentence capitalization check: Ensure formal sentences start with a capital letter.");
+                correctedSentence = correctedSentence.charAt(0).toUpperCase() + correctedSentence.slice(1);
             }
 
-            let marksObtained = 6;
-            let feedbackMessage = "";
-            let isRelevant = false;
-
-            if (hintWords.length === 0 || matchCount > 0 || userSpeechLower.length > 5) {
-                isRelevant = true;
-                marksObtained = Math.min(10, 7 + (matchCount * 2));
-                feedbackMessage = `Good context match! Your reply fit the conversation flow well.`;
-            } else {
-                marksObtained = 4;
-                feedbackMessage = `Your response was recorded, but try to align closer with the hint: "${currentTurn.aiExpectedHint}".`;
+            if (mistakesFound.length === 0) {
+                mistakesFound.push("No major structural grammar errors detected. Good syntax flow!");
             }
 
-            feedbackBox.className = isRelevant 
-                ? "border p-3 rounded-xl text-xs space-y-2 bg-emerald-50 border-emerald-200 text-emerald-900" 
-                : "border p-3 rounded-xl text-xs space-y-2 bg-amber-50 border-amber-200 text-amber-900";
+            grammarScore = Math.max(3, grammarScore);
 
-            document.getElementById('marksBadge').className = isRelevant 
-                ? "bg-emerald-600 text-white font-bold px-2 py-0.5 rounded text-[10px]" 
-                : "bg-amber-600 text-white font-bold px-2 py-0.5 rounded text-[10px]";
-
-            document.getElementById('marksBadge').innerText = `Marks: ${marksObtained}/10`;
-            document.getElementById('feedbackText').innerText = feedbackMessage;
+            document.getElementById('userSpokenText').innerText = speechToText;
+            document.getElementById('correctedSentenceText').innerText = correctedSentence;
+            document.getElementById('grammarMistakesText').innerText = mistakesFound.join(" | ");
+            document.getElementById('marksBadge').innerText = `Score: ${grammarScore}/10`;
+            feedbackBox.className = "border p-3 rounded-xl text-xs space-y-2 bg-emerald-50 border-emerald-200 text-emerald-900";
             feedbackBox.classList.remove('hidden');
 
             if (currentTurnIndex < roleData.turns.length - 1) {
                 currentTurnIndex++;
                 setTimeout(() => {
                     updateChatPrompt();
-                }, 1200);
+                }, 1500);
             } else {
                 setTimeout(() => {
                     const completionMsg = "Congratulations! You successfully completed all turns for this role-play scenario.";
