@@ -6,7 +6,7 @@
     <title>FluentSpoken - AI Voice Speaking Partner</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans flex flex-col lg:flex-row h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-800 font-sans flex flex-col lg:flex-row h-[100dvh] overflow-hidden">
 
     <!-- Sidebar for Chat Display Window (Hidden on mobile, visible on large screens) -->
     <aside class="hidden lg:flex lg:w-80 bg-white border-r border-slate-200 flex-col h-full shadow-sm z-10">
@@ -23,12 +23,12 @@
     </aside>
 
     <!-- App Container -->
-    <div class="flex-1 w-full mx-auto h-full bg-white shadow-xl flex flex-col justify-between overflow-y-auto">
+    <div class="flex-1 w-full h-[100dvh] lg:h-full bg-white shadow-xl flex flex-col justify-between overflow-hidden">
         
         <!-- Header -->
-        <header class="bg-indigo-600 text-white p-4 flex justify-between items-center shadow-md">
+        <header class="bg-indigo-600 text-white p-3 sm:p-4 flex justify-between items-center shadow-md flex-shrink-0">
             <div>
-                <h1 class="text-lg sm:text-xl font-bold">🗣️ FluentSpoken</h1>
+                <h1 class="text-base sm:text-xl font-bold">🗣️ FluentSpoken</h1>
                 <p id="modeSubtitle" class="text-xs text-indigo-200">Mode: Student 🎓</p>
             </div>
             <button onclick="toggleAudienceMode()" id="modeSwitchBtn" class="bg-indigo-500 hover:bg-indigo-400 text-xs px-3 py-1.5 rounded-lg font-semibold transition border border-indigo-400">
@@ -36,8 +36,8 @@
             </button>
         </header>
 
-        <!-- Main Content Area -->
-        <main class="p-3 sm:p-4 flex-1 overflow-y-auto space-y-4">
+        <!-- Main Content Scrollable Area -->
+        <main class="flex-1 p-3 sm:p-4 overflow-y-auto space-y-4">
             
             <!-- Level Selector -->
             <section class="bg-slate-100 p-3 rounded-xl">
@@ -82,7 +82,7 @@
             </section>
 
             <!-- Chat / Interaction Box -->
-            <div id="chatContainer" class="space-y-3">
+            <div id="chatContainer" class="space-y-3 pb-2">
                 <div class="text-slate-400 text-center text-xs py-6 italic">Click "Start Conversation" above to begin this scenario.</div>
             </div>
 
@@ -100,13 +100,13 @@
 
         </main>
 
-        <!-- Footer / Controls with Start & Stop Buttons -->
-        <footer class="p-3 sm:p-4 bg-white border-t border-slate-100 space-y-2">
+        <!-- Footer / Controls with Start & Stop Buttons (Fixed to bottom) -->
+        <footer class="p-3 sm:p-4 bg-white border-t border-slate-200 space-y-2 flex-shrink-0 shadow-lg">
             <div class="flex items-center space-x-2">
-                <button onclick="startListening()" id="startBtn" disabled class="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center space-x-1 shadow-lg shadow-emerald-100 transition">
+                <button onclick="startListening()" id="startBtn" disabled class="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center space-x-1 shadow-md transition">
                     <span>▶ Start Speaking</span>
                 </button>
-                <button onclick="stopListening()" id="stopBtn" disabled class="flex-1 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center space-x-1 shadow-lg shadow-rose-100 transition">
+                <button onclick="stopListening()" id="stopBtn" disabled class="flex-1 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center space-x-1 shadow-md transition">
                     <span>⏹ Stop</span>
                 </button>
                 <button onclick="explainGrammar()" class="bg-slate-100 hover:bg-slate-200 px-3 sm:px-4 py-3 rounded-xl text-slate-700 font-medium text-xs sm:text-sm transition border">
