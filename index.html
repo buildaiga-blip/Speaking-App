@@ -8,7 +8,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans h-screen overflow-hidden flex flex-col lg:flex-row">
 
-    <!-- Sidebar for Chat Display Window (Hidden on mobile, visible on large screens) -->
+    <!-- Sidebar for Chat Display Window -->
     <aside class="hidden lg:flex lg:w-80 bg-white border-r border-slate-200 flex-col h-full shadow-sm z-10">
         <div class="p-4 bg-indigo-50 border-b border-indigo-100 flex items-center justify-between flex-shrink-0">
             <h2 class="font-bold text-indigo-950 text-sm flex items-center space-x-1.5">
@@ -36,7 +36,7 @@
             </button>
         </header>
 
-        <!-- Main Content Area (Scrollable) -->
+        <!-- Main Content Area -->
         <main class="p-3 sm:p-5 flex-1 overflow-y-auto space-y-3 flex-shrink">
             
             <!-- Level Selector -->
@@ -132,34 +132,46 @@
         let isConversationActive = false;
         let isAISpeaking = false;
 
-        // Mobile touch & click event binding ensuring direct synchronous execution context
+        // Force native touch binding directly on DOM elements for mobile Safari & Chrome
         document.addEventListener("DOMContentLoaded", () => {
             const startBtn = document.getElementById('startBtn');
             const stopBtn = document.getElementById('stopBtn');
 
-            const handleStartAction = (e) => {
+            startBtn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                unlockAudioContext();
-                startListening();
-            };
+                if (!startBtn.disabled) {
+                    unlockAudioContext();
+                    startListening();
+                }
+            }, { passive: false });
 
-            const handleStopAction = (e) => {
+            startBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                stopListening();
-            };
+                if (!startBtn.disabled) {
+                    unlockAudioContext();
+                    startListening();
+                }
+            });
 
-            startBtn.addEventListener('click', handleStartAction);
-            startBtn.addEventListener('touchend', handleStartAction, { passive: false });
+            stopBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (!stopBtn.disabled) {
+                    stopListening();
+                }
+            }, { passive: false });
 
-            stopBtn.addEventListener('click', handleStopAction);
-            stopBtn.addEventListener('touchend', handleStopAction, { passive: false });
+            stopBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (!stopBtn.disabled) {
+                    stopListening();
+                }
+            });
         });
 
         function unlockAudioContext() {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
-                const blankUtterance = new SpeechSynthesisUtterance("");
-                window.speechSynthesis.speak(blankUtterance);
+                isAISpeaking = false;
             }
         }
 
@@ -193,7 +205,7 @@
                     if (isAISpeaking) {
                         enableMic();
                     }
-                }, 5000);
+                }, 6000);
             } else {
                 isAISpeaking = false;
                 document.getElementById('startBtn').disabled = false;
@@ -386,7 +398,7 @@
         }
 
         function startListening() {
-            if (!isConversationActive || isAISpeaking) return;
+            if (!isConversationActive) return;
 
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             
