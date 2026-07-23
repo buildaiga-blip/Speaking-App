@@ -2,24 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FluentSpoken - AI Voice Speaking Partner</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Force absolute viewport fit on mobile browsers */
-        html, body {
-            height: 100%;
-            height: 100dvh;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-    </style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans flex flex-col lg:flex-row w-screen">
+<body class="bg-slate-50 text-slate-800 font-sans flex flex-col lg:flex-row min-h-screen">
 
     <!-- Sidebar for Chat Display Window (Hidden on mobile, visible on large screens) -->
-    <aside class="hidden lg:flex lg:w-80 bg-white border-r border-slate-200 flex-col h-full shadow-sm z-10">
+    <aside class="hidden lg:flex lg:w-80 bg-white border-r border-slate-200 flex-col h-screen sticky top-0 shadow-sm z-10">
         <div class="p-4 bg-indigo-50 border-b border-indigo-100 flex items-center justify-between flex-shrink-0">
             <h2 class="font-bold text-indigo-950 text-sm flex items-center space-x-1.5">
                 <span>💬</span>
@@ -33,10 +23,10 @@
     </aside>
 
     <!-- App Container -->
-    <div class="flex-1 w-full h-full bg-white shadow-xl flex flex-col justify-between overflow-hidden">
+    <div class="flex-1 w-full max-w-4xl mx-auto bg-white shadow-xl flex flex-col min-h-screen">
         
         <!-- Header -->
-        <header class="bg-indigo-600 text-white p-3 sm:p-4 flex justify-between items-center shadow-md flex-shrink-0">
+        <header class="bg-indigo-600 text-white p-3 sm:p-4 flex justify-between items-center shadow-md">
             <div>
                 <h1 class="text-base sm:text-xl font-bold">🗣️ FluentSpoken</h1>
                 <p id="modeSubtitle" class="text-xs text-indigo-200">Mode: Student 🎓</p>
@@ -46,11 +36,11 @@
             </button>
         </header>
 
-        <!-- Main Content Scrollable Area -->
-        <main class="flex-1 p-3 sm:p-4 overflow-y-auto space-y-4">
+        <!-- Main Content Area -->
+        <main class="p-3 sm:p-5 flex-1 space-y-4">
             
             <!-- Level Selector -->
-            <section class="bg-slate-100 p-3 rounded-xl flex-shrink-0">
+            <section class="bg-slate-100 p-3 rounded-xl">
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Select Your Level</label>
                 <div class="grid grid-cols-3 gap-2">
                     <button onclick="setLevel('Basic')" class="level-btn bg-indigo-600 text-white text-sm py-1.5 rounded-lg font-medium transition shadow-sm">Basic</button>
@@ -60,14 +50,14 @@
             </section>
 
             <!-- Scenario Selector -->
-            <section class="bg-slate-100 p-3 rounded-xl flex-shrink-0">
+            <section class="bg-slate-100 p-3 rounded-xl">
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Select Scenario Topic</label>
                 <select id="scenarioSelector" onchange="changeScenario()" class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg p-2 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 </select>
             </section>
 
             <!-- Role Selector & Learning Mission -->
-            <section class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 shadow-sm space-y-3 flex-shrink-0">
+            <section class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 shadow-sm space-y-3">
                 <div class="flex justify-between items-center">
                     <span id="levelBadge" class="bg-indigo-200 text-indigo-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Basic Level</span>
                     <span id="turnIndicator" class="text-xs bg-indigo-600 text-white px-2 py-0.5 rounded-full font-semibold">Turn 1 of 10</span>
@@ -92,15 +82,15 @@
             </section>
 
             <!-- Chat / Interaction Box -->
-            <div id="chatContainer" class="space-y-3 pb-4">
+            <div id="chatContainer" class="space-y-3">
                 <div class="text-slate-400 text-center text-xs py-6 italic">Click "Start Conversation" above to begin this scenario.</div>
             </div>
 
-            <!-- Pronunciation Feedback Box with Ratings and Marks -->
-            <div id="feedbackBox" class="hidden bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-xs text-emerald-900 space-y-2 flex-shrink-0">
+            <!-- Pronunciation Feedback Box -->
+            <div id="feedbackBox" class="hidden border p-3 rounded-xl text-xs space-y-2">
                 <div class="flex justify-between items-center">
-                    <span class="font-bold">✨ Evaluation & Feedback:</span>
-                    <span id="marksBadge" class="bg-emerald-600 text-white font-bold px-2 py-0.5 rounded text-[10px]">Marks: 0/10</span>
+                    <span id="feedbackTitle" class="font-bold">✨ Evaluation & Feedback:</span>
+                    <span id="marksBadge" class="font-bold px-2 py-0.5 rounded text-[10px]">Marks: 0/10</span>
                 </div>
                 <div id="starContainer" class="flex space-x-1 text-amber-400 text-sm">
                     <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
@@ -110,13 +100,13 @@
 
         </main>
 
-        <!-- Footer / Controls with Start & Stop Buttons (Strictly locked to bottom) -->
-        <footer class="p-3 bg-white border-t border-slate-200 space-y-2 flex-shrink-0 shadow-2xl z-20">
+        <!-- Footer / Controls -->
+        <footer class="p-3 sm:p-4 bg-white border-t border-slate-100 space-y-2 mt-auto">
             <div class="flex items-center space-x-2">
-                <button onclick="startListening()" id="startBtn" disabled class="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center space-x-1 shadow-md transition">
+                <button onclick="startListening()" id="startBtn" disabled class="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center space-x-1 shadow transition">
                     <span>▶ Start Speaking</span>
                 </button>
-                <button onclick="stopListening()" id="stopBtn" disabled class="flex-1 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center space-x-1 shadow-md transition">
+                <button onclick="stopListening()" id="stopBtn" disabled class="flex-1 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 disabled:text-slate-400 text-white py-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center space-x-1 shadow transition">
                     <span>⏹ Stop</span>
                 </button>
                 <button onclick="explainGrammar()" class="bg-slate-100 hover:bg-slate-200 px-3 sm:px-4 py-3 rounded-xl text-slate-700 font-medium text-xs sm:text-sm transition border">
@@ -140,13 +130,38 @@
         let recognition = null;
         let isRecording = false;
         let isConversationActive = false;
+        let isAISpeaking = false;
 
         function speakAI(text) {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
+                isAISpeaking = true;
+                
+                // Keep Start button disabled while AI is speaking
+                const startBtn = document.getElementById('startBtn');
+                startBtn.disabled = true;
+                startBtn.classList.add('opacity-50');
+
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'en-US';
                 utterance.rate = 0.95;
+
+                utterance.onend = function() {
+                    isAISpeaking = false;
+                    if (isConversationActive && !isRecording) {
+                        startBtn.disabled = false;
+                        startBtn.classList.remove('opacity-50');
+                    }
+                };
+
+                utterance.onerror = function() {
+                    isAISpeaking = false;
+                    if (isConversationActive && !isRecording) {
+                        startBtn.disabled = false;
+                        startBtn.classList.remove('opacity-50');
+                    }
+                };
+
                 window.speechSynthesis.speak(utterance);
             }
         }
@@ -236,6 +251,9 @@
         function resetConversationState() {
             isConversationActive = false;
             currentTurnIndex = 0;
+            window.speechSynthesis.cancel();
+            isAISpeaking = false;
+            
             document.getElementById('startConversationBtn').disabled = false;
             document.getElementById('startConversationBtn').className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-xl shadow transition text-xs flex items-center justify-center space-x-1.5";
             document.getElementById('startConversationBtn').innerText = "🚀 Start Conversation";
@@ -267,13 +285,12 @@
 
         function startConversation() {
             isConversationActive = true;
-            currentTurnIndex = 0; // Reset turn index properly on start
+            currentTurnIndex = 0;
             const startConvBtn = document.getElementById('startConversationBtn');
             startConvBtn.disabled = true;
             startConvBtn.className = "w-full bg-slate-300 text-slate-500 font-semibold py-2.5 px-4 rounded-xl text-xs cursor-not-allowed flex items-center justify-center space-x-1.5";
             startConvBtn.innerText = "✓ Conversation Active";
 
-            document.getElementById('startBtn').disabled = false;
             updateChatPrompt();
         }
 
@@ -287,8 +304,8 @@
             
             document.getElementById('turnIndicator').innerText = `Turn ${currentTurnIndex + 1} of ${roleData.turns.length}`;
 
-            chatContainer.innerHTML = `
-                <div class="flex items-start space-x-2">
+            chatContainer.innerHTML += `
+                <div class="flex items-start space-x-2 my-2">
                     <div class="bg-slate-200 rounded-full h-8 w-8 flex-shrink-0 flex items-center justify-center font-bold text-xs">AI</div>
                     <div class="bg-slate-100 p-3 rounded-2xl rounded-tl-none text-sm max-w-[85%] space-y-1">
                         <p>${currentTurn.aiPrompt}</p>
@@ -303,6 +320,7 @@
             
             appendSidebarMessage('AI', currentTurn.aiPrompt);
             speakAI(currentTurn.aiPrompt);
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
         function appendSidebarMessage(sender, text) {
@@ -332,7 +350,7 @@
         }
 
         function startListening() {
-            if (!isConversationActive) return;
+            if (!isConversationActive || isAISpeaking) return;
 
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
                 alert("Speech recognition is not supported in this browser. Please open this file in Google Chrome.");
@@ -384,7 +402,7 @@
             isRecording = false;
             const startBtn = document.getElementById('startBtn');
             const stopBtn = document.getElementById('stopBtn');
-            if(isConversationActive) {
+            if(isConversationActive && !isAISpeaking) {
                 startBtn.disabled = false;
                 startBtn.classList.remove('opacity-50');
             }
@@ -397,7 +415,7 @@
             const feedbackBox = document.getElementById('feedbackBox');
 
             chatContainer.innerHTML += `
-                <div class="flex items-start justify-end space-x-2 mt-2">
+                <div class="flex items-start justify-end space-x-2 my-2">
                     <div class="bg-indigo-600 text-white p-3 rounded-2xl rounded-tr-none text-sm max-w-[85%] shadow-sm">
                         <p>${speechToText}</p>
                     </div>
@@ -407,27 +425,61 @@
 
             appendSidebarMessage('You', speechToText);
 
-            const scorePercentage = 95;
-            const marksObtained = 9;
-            document.getElementById('marksBadge').innerText = `Marks: ${marksObtained}/10`;
-            document.getElementById('feedbackText').innerText = `Heard: "${speechToText}". Great flow! Accuracy score: ${scorePercentage}%.`;
-            feedbackBox.classList.remove('hidden');
-
+            // Context-Aware Evaluation Logic
             const scenario = appData[currentMode].scenarios[currentScenarioIndex];
             const roleData = scenario.roles[selectedRoleKey];
+            const currentTurn = roleData.turns[currentTurnIndex];
 
-            // Wait for user input rather than auto-incrementing; increment only after speech input is received
+            const expectedHint = (currentTurn.aiExpectedHint || "").toLowerCase();
+            const userSpeechLower = speechToText.toLowerCase();
+
+            // Simple keyword / context relevance check
+            let matchCount = 0;
+            const hintWords = expectedHint.replace(/[^a-zA-Z ]/g, "").split(/\s+/).filter(w => w.length > 2);
+            
+            if (hintWords.length > 0) {
+                hintWords.forEach(word => {
+                    if (userSpeechLower.includes(word)) matchCount++;
+                });
+            }
+
+            let marksObtained = 6; // Base marks for answering
+            let feedbackMessage = "";
+            let isRelevant = false;
+
+            if (hintWords.length === 0 || matchCount > 0 || userSpeechLower.length > 5) {
+                // Relevant context found or reasonable sentence length
+                isRelevant = true;
+                marksObtained = Math.min(10, 7 + (matchCount * 2));
+                feedbackMessage = `Good context match! Your reply fit the conversation flow well.`;
+            } else {
+                marksObtained = 4;
+                feedbackMessage = `Your response was recorded, but try to align closer with the hint: "${currentTurn.aiExpectedHint}".`;
+            }
+
+            // Style feedback box based on evaluation
+            feedbackBox.className = isRelevant 
+                ? "border p-3 rounded-xl text-xs space-y-2 bg-emerald-50 border-emerald-200 text-emerald-900" 
+                : "border p-3 rounded-xl text-xs space-y-2 bg-amber-50 border-amber-200 text-amber-900";
+
+            document.getElementById('marksBadge').className = isRelevant 
+                ? "bg-emerald-600 text-white font-bold px-2 py-0.5 rounded text-[10px]" 
+                : "bg-amber-600 text-white font-bold px-2 py-0.5 rounded text-[10px]";
+
+            document.getElementById('marksBadge').innerText = `Marks: ${marksObtained}/10`;
+            document.getElementById('feedbackText').innerText = feedbackMessage;
+            feedbackBox.classList.remove('hidden');
+
             if (currentTurnIndex < roleData.turns.length - 1) {
                 currentTurnIndex++;
                 setTimeout(() => {
                     updateChatPrompt();
-                    chatContainer.scrollTop = chatContainer.scrollHeight;
-                }, 1500);
+                }, 1200);
             } else {
                 setTimeout(() => {
                     const completionMsg = "Congratulations! You successfully completed all turns for this role-play scenario.";
                     chatContainer.innerHTML += `
-                        <div class="flex items-start space-x-2 mt-2">
+                        <div class="flex items-start space-x-2 my-2">
                             <div class="bg-emerald-600 text-white p-3 rounded-2xl rounded-tl-none text-sm max-w-[85%] font-medium">
                                 🏆 ${completionMsg}
                             </div>
@@ -438,6 +490,7 @@
                     document.getElementById('startBtn').disabled = true;
                 }, 1000);
             }
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
         function explainGrammar() {
