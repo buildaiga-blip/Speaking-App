@@ -480,7 +480,7 @@
             stopBtn.disabled = true;
         }
 
-        function handleUserSpeech(speechToText) {
+function handleUserSpeech(speechToText) {
             resetMicButtons();
             const chatContainer = document.getElementById('chatContainer');
             const feedbackBox = document.getElementById('feedbackBox');
@@ -500,41 +500,114 @@
             const roleData = scenario.roles[selectedRoleKey];
             const currentTurn = roleData.turns[currentTurnIndex];
 
-            // Advanced Grammar & Sentence Error Inspection
-            let grammarScore = 8;
+            // --- COMPREHENSIVE LINGUISTIC & CONTEXTUAL EVALUATION ENGINE ---
+            let grammarScore = 10;
             let mistakesFound = [];
-            let correctedSentence = speechToText;
+            let correctedSentence = speechToText.trim();
 
-            const lowerSpeech = speechToText.toLowerCase();
-            if (lowerSpeech.startsWith("i is ") || lowerSpeech.startsWith("he am ") || lowerSpeech.startsWith("they is ")) {
-                grammarScore -= 3;
-                mistakesFound.push("Subject-verb agreement error (e.g., use 'I am' instead of 'I is').");
-                correctedSentence = correctedSentence.replace(/i is/gi, "I am").replace(/he am/gi, "he is").replace(/they is/gi, "they are");
-            }
-            if (lowerSpeech.includes("goed") || lowerSpeech.includes("eated")) {
-                grammarScore -= 3;
-                mistakesFound.push("Incorrect past tense form used.");
-                correctedSentence = correctedSentence.replace(/goed/gi, "went").replace(/eated/gi, "ate");
-            }
-            if (speechToText.length > 0 && speechToText[0] !== speechToText[0].toUpperCase()) {
-                grammarScore -= 1;
-                mistakesFound.push("Sentence capitalization check: Ensure formal sentences start with a capital letter.");
-                correctedSentence = correctedSentence.charAt(0).toUpperCase() + correctedSentence.slice(1);
+            const rawText = speechToText.trim();
+            const lowerSpeech = rawText.toLowerCase();
+            const words = lowerSpeech.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "").split(/\s+/).filter(w => w.length > 0);
+            
+            const expectedHint = (currentTurn.suggestedAnswer || currentTurn.aiExpectedHint || "").toLowerCase();
+            const promptText = (currentTurn.aiPrompt || "").toLowerCase();
+
+            // Auto-format standard punctuation and capitalization for the corrected baseline
+            if (rawText.length > 0) {
+                correctedSentence = rawText.charAt(0).toUpperCase() + rawText.slice(1);
+                if (!/[.!?]$/.test(correctedSentence)) {
+                    correctedSentence += '.';
+                }
             }
 
+            // 1. NON-ENGLISH / CODE-SWITCHING DETECTION
+            // Checks for common non-English structural markers or non-Latin scripts
+            const hasNonEnglish = /\b(mein|hai|hain|kya|kaise|nahi|aur|bhi|chhi|bhai)\b/i.test(lowerSpeech) || /[^\x00-\x7F]/.test(rawText);
+            if (hasNonEnglish) {
+                grammarScore -= 4;
+                mistakesFound.push("Language Error: Please reply entirely in English rather than mixing native or regional vocabulary.");
+                correctedSentence = currentTurn.suggestedAnswer || currentTurn.aiExpectedHint || "I am participating in this conversation in English.";
+            }
+
+            // 2. SEMANTIC NONSENSE & FRAGMENT CHECK (Word salad or mismatched tokens)
+            // Evaluates if the sentence structure is completely fractured (e.g., random numbers mixed with greetings, or disconnected nouns)
+            const hasRandomNumbers = /\b[0-9]+\b/.test(lowerSpeech) && !promptText.includes("how many") && !promptText.includes("age") && !promptText.includes("long");
+            const isTooShort = words.length < 2 && currentLevel !== 'Basic';
+            
+            if (hasRandomNumbers) {
+                grammarScore -= 3.5;
+                mistakesFound.push("Semantic Error: Your sentence includes numbers or digits that do not fit the logical flow of this conversational context.");
+                correctedSentence = currentTurn.suggestedAnswer || currentTurn.aiExpectedHint;
+            } else if (isTooShort) {
+                grammarScore -= 2.5;
+                mistakesFound.push("Fluency Tip: Response is too fragmented. Try expressing your thoughts using a complete sentence.");
+                if (currentTurn.suggestedAnswer) correctedSentence = currentTurn.suggestedAnswer;
+            }
+
+            // 3. CONTEXTUAL RELEVANCE CHECK (Does the input match the question prompt?)
+            if (expectedHint && words.length > 1 && !hasNonEnglish) {
+                const stopWords = ['i', 'a', 'an', 'the', 'is', 'are', 'to', 'in', 'it', 'and', 'for', 'of', 'on', 'you', 'my'];
+                const expectedKeywords = expectedHint.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w));
+                
+                if (expectedKeywords.length > 0) {
+                    const matchCount = expectedKeywords.filter(kw => lowerSpeech.includes(kw)).length;
+                    // If the user's reply is completely off-topic or evasive (e.g., "why should I tell...")
+                    if (lowerSpeech.startsWith("why should") || lowerSpeech.includes("none of your business") || (matchCount === 0 && words.length > 3)) {
+                        grammarScore -= 3;
+                        mistakesFound.push("Context Alignment: Your response drifts away from the objective of this scenario step. Try addressing the prompt directly.");
+                        correctedSentence = currentTurn.suggestedAnswer || currentTurn.aiExpectedHint;
+                    }
+                }
+            }
+
+            // 4. CORE GRAMMAR & TENSE INSPECTIONS
+            // Subject-Verb Agreement checks
+            if (/\b(i)\s+(is|are)\b/i.test(lowerSpeech)) {
+                grammarScore -= 2.5;
+                mistakesFound.push("Grammar Rule: Subject-verb agreement mismatch. Use 'I am' instead of 'I is/are'.");
+                correctedSentence = correctedSentence.replace(/\bi\s+is\b/gi, "I am").replace(/\bi\s+are\b/gi, "I am");
+            }
+            if (/\b(he|she|it)\s+(am|are)\b/i.test(lowerSpeech)) {
+                grammarScore -= 2.5;
+                mistakesFound.push("Grammar Rule: Use 'is' with singular third-person pronouns.");
+                correctedSentence = correctedSentence.replace(/\b(he|she|it)\s+am\b/gi, "$1 is").replace(/\b(he|she|it)\s+are\b/gi, "$1 is");
+            }
+
+            // Pluralization checks after numbers
+            if (/\b(two|three|four|five|six|seven|eight|nine|ten|[2-9])\s+(year|month|week|day|hour|student|book)\b/i.test(lowerSpeech)) {
+                grammarScore -= 2;
+                mistakesFound.push("Pluralization Error: Nouns following a number greater than one must be pluralized (e.g., 'two years' instead of 'two year').");
+                correctedSentence = correctedSentence.replace(/\b(two|three|four|five|six|seven|eight|nine|ten|[2-9])\s+(year|month|week|day|hour|student|book)\b/gi, "$1 $2s");
+            }
+
+            // Common irregular verb errors
+            if (/\b(goed|eated|runned|teached|flyed)\b/i.test(lowerSpeech)) {
+                grammarScore -= 2;
+                mistakesFound.push("Tense Error: Incorrect irregular past tense form used.");
+                correctedSentence = correctedSentence
+                    .replace(/\bgoed\b/gi, "went")
+                    .replace(/\beated\b/gi, "ate")
+                    .replace(/\brunned\b/gi, "ran")
+                    .replace(/\bteached\b/gi, "taught");
+            }
+
+            // 5. FINAL FEEDBACK & SCORE CONSOLIDATION
             if (mistakesFound.length === 0) {
-                mistakesFound.push("No major structural grammar errors detected. Good syntax flow!");
+                mistakesFound.push("Great sentence structure! Accurate grammar and fluent syntax.");
             }
 
-            grammarScore = Math.max(3, grammarScore);
+            grammarScore = Math.max(3, Math.min(10, grammarScore));
 
-            document.getElementById('userSpokenText').innerText = speechToText;
+            // Render Feedback Box UI
+            document.getElementById('userSpokenText').innerText = rawText;
             document.getElementById('correctedSentenceText').innerText = correctedSentence;
             document.getElementById('grammarMistakesText').innerText = mistakesFound.join(" | ");
-            document.getElementById('marksBadge').innerText = `Score: ${grammarScore}/10`;
+            document.getElementById('marksBadge').innerText = `Score: ${grammarScore.toFixed(1)}/10`;
+            
             feedbackBox.className = "border p-3 rounded-xl text-xs space-y-2 bg-emerald-50 border-emerald-200 text-emerald-900";
             feedbackBox.classList.remove('hidden');
 
+            // Advance conversation turn
             if (currentTurnIndex < roleData.turns.length - 1) {
                 currentTurnIndex++;
                 setTimeout(() => {
@@ -556,7 +629,6 @@
                 }, 1000);
             }
         }
-
         function explainGrammar() {
             const scenario = appData[currentMode].scenarios[currentScenarioIndex];
             alert(scenario.grammarTip);
