@@ -478,7 +478,21 @@
             stopBtn.disabled = true;
         }
 
-        function handleUserSpeech(speechToText) {
+        async function checkGrammarWithAPI(text) {
+            try {
+                const response = await fetch("https://api.languagetool.org/v2/check", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: new URLSearchParams({ text: text, language: 'en-US' })
+                });
+                const data = await response.json();
+                return data.matches || [];
+            } catch(e) {
+                return [];
+            }
+        }
+
+        async function handleUserSpeech(speechToText) {
             resetMicButtons();
             const chatContainer = document.getElementById('chatContainer');
             const feedbackBox = document.getElementById('feedbackBox');
@@ -494,101 +508,41 @@
 
             appendSidebarMessage('You', speechToText);
 
-            const scenario = appData[currentMode].scenarios[currentScenarioIndex];
-            const roleData = scenario.roles[selectedRoleKey];
-            const currentTurn = roleData.turns[currentTurnIndex];
-
-            // --- COMPREHENSIVE LINGUISTIC & CONTEXTUAL EVALUATION ENGINE ---
+            const rawText = speechToText.trim();
             let grammarScore = 10;
             let mistakesFound = [];
-            let correctedSentence = speechToText.trim();
+            let correctedSentence = rawText;
 
-            const rawText = speechToText.trim();
-            const lowerSpeech = rawText.toLowerCase();
-            const words = lowerSpeech.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "").split(/\s+/).filter(w => w.length > 0);
-            
-            const expectedHint = (currentTurn.suggestedAnswer || currentTurn.aiExpectedHint || "").toLowerCase();
-            const promptText = (currentTurn.aiPrompt || "").toLowerCase();
+            // Fetch comprehensive checks via LanguageTool API
+            const matches = await checkGrammarWithAPI(rawText);
+            if (matches && matches.length > 0) {
+                grammarScore = Math.max(3, 10 - (matches.length * 1.5));
+                mistakesFound = matches.map(m => m.message);
+                
+                let offsetShift = 0;
+                let tempSentence = rawText;
+                matches.forEach(match => {
+                    if (match.replacements && match.replacements.length > 0) {
+                        const replacement = match.replacements[0].value;
+                        const start = match.offset;
+                        const end = match.offset + match.length;
+                        tempSentence = tempSentence.substring(0, start + offsetShift) + replacement + tempSentence.substring(end + offsetShift);
+                        offsetShift += replacement.length - match.length;
+                    }
+                });
+                correctedSentence = tempSentence;
+            } else {
+                mistakesFound.push("Great sentence structure! Accurate grammar and fluent syntax.");
+            }
 
             if (rawText.length > 0) {
-                correctedSentence = rawText.charAt(0).toUpperCase() + rawText.slice(1);
+                correctedSentence = correctedSentence.charAt(0).toUpperCase() + correctedSentence.slice(1);
                 if (!/[.!?]$/.test(correctedSentence)) {
                     correctedSentence += '.';
                 }
             }
 
-            // 1. NON-ENGLISH / CODE-SWITCHING DETECTION
-            const hasNonEnglish = /\b(mein|hai|hain|kya|kaise|nahi|aur|bhi|chhi|bhai)\b/i.test(lowerSpeech) || /[^\x00-\x7F]/.test(rawText);
-            if (hasNonEnglish) {
-                grammarScore -= 4;
-                mistakesFound.push("Language Error: Please reply entirely in English rather than mixing native or regional vocabulary.");
-                correctedSentence = currentTurn.suggestedAnswer || currentTurn.aiExpectedHint || "I am participating in this conversation in English.";
-            }
-
-            // 2. SEMANTIC NONSENSE & FRAGMENT CHECK
-            const hasRandomNumbers = /\b[0-9]+\b/.test(lowerSpeech) && !promptText.includes("how many") && !promptText.includes("age") && !promptText.includes("long");
-            const isTooShort = words.length < 2 && currentLevel !== 'Basic';
-            
-            if (hasRandomNumbers) {
-                grammarScore -= 3.5;
-                mistakesFound.push("Semantic Error: Your sentence includes numbers or digits that do not fit the logical flow of this conversational context.");
-                correctedSentence = currentTurn.suggestedAnswer || currentTurn.aiExpectedHint;
-            } else if (isTooShort) {
-                grammarScore -= 2.5;
-                mistakesFound.push("Fluency Tip: Response is too fragmented. Try expressing your thoughts using a complete sentence.");
-                if (currentTurn.suggestedAnswer) correctedSentence = currentTurn.suggestedAnswer;
-            }
-
-            // 3. CONTEXTUAL RELEVANCE CHECK
-            if (expectedHint && words.length > 1 && !hasNonEnglish) {
-                const stopWords = ['i', 'a', 'an', 'the', 'is', 'are', 'to', 'in', 'it', 'and', 'for', 'of', 'on', 'you', 'my'];
-                const expectedKeywords = expectedHint.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w));
-                
-                if (expectedKeywords.length > 0) {
-                    const matchCount = expectedKeywords.filter(kw => lowerSpeech.includes(kw)).length;
-                    if (lowerSpeech.startsWith("why should") || lowerSpeech.includes("none of your business") || (matchCount === 0 && words.length > 3)) {
-                        grammarScore -= 3;
-                        mistakesFound.push("Context Alignment: Your response drifts away from the objective of this scenario step. Try addressing the prompt directly.");
-                        correctedSentence = currentTurn.suggestedAnswer || currentTurn.aiExpectedHint;
-                    }
-                }
-            }
-
-            // 4. CORE GRAMMAR & TENSE INSPECTIONS
-            if (/\b(i)\s+(is|are)\b/i.test(lowerSpeech)) {
-                grammarScore -= 2.5;
-                mistakesFound.push("Grammar Rule: Subject-verb agreement mismatch. Use 'I am' instead of 'I is/are'.");
-                correctedSentence = correctedSentence.replace(/\bi\s+is\b/gi, "I am").replace(/\bi\s+are\b/gi, "I am");
-            }
-            if (/\b(he|she|it)\s+(am|are)\b/i.test(lowerSpeech)) {
-                grammarScore -= 2.5;
-                mistakesFound.push("Grammar Rule: Use 'is' with singular third-person pronouns.");
-                correctedSentence = correctedSentence.replace(/\b(he|she|it)\s+am\b/gi, "$1 is").replace(/\b(he|she|it)\s+are\b/gi, "$1 is");
-            }
-
-            if (/\b(two|three|four|five|six|seven|eight|nine|ten|[2-9])\s+(year|month|week|day|hour|student|book)\b/i.test(lowerSpeech)) {
-                grammarScore -= 2;
-                mistakesFound.push("Pluralization Error: Nouns following a number greater than one must be pluralized (e.g., 'two years' instead of 'two year').");
-                correctedSentence = correctedSentence.replace(/\b(two|three|four|five|six|seven|eight|nine|ten|[2-9])\s+(year|month|week|day|hour|student|book)\b/gi, "$1 $2s");
-            }
-
-            if (/\b(goed|eated|runned|teached|flyed)\b/i.test(lowerSpeech)) {
-                grammarScore -= 2;
-                mistakesFound.push("Tense Error: Incorrect irregular past tense form used.");
-                correctedSentence = correctedSentence
-                    .replace(/\bgoed\b/gi, "went")
-                    .replace(/\beated\b/gi, "ate")
-                    .replace(/\brunned\b/gi, "ran")
-                    .replace(/\bteached\b/gi, "taught");
-            }
-
-            if (mistakesFound.length === 0) {
-                mistakesFound.push("Great sentence structure! Accurate grammar and fluent syntax.");
-            }
-
-            grammarScore = Math.max(3, Math.min(10, grammarScore));
-
-            // --- RENDER FEEDBACK BOX WITH SPEAKER ICON ---
+            // --- RENDER FEEDBACK BOX ---
             document.getElementById('userSpokenText').innerText = rawText;
             document.getElementById('marksBadge').innerText = `Score: ${grammarScore.toFixed(1)}/10`;
             document.getElementById('grammarMistakesText').innerText = mistakesFound.join(" | ");
@@ -612,13 +566,14 @@
                     utterance.lang = 'en-US';
                     utterance.rate = 0.9;
                     window.speechSynthesis.speak(utterance);
-                } else {
-                    alert("Text-to-speech is not supported by your browser.");
                 }
             });
             
             feedbackBox.className = "border p-3 rounded-xl text-xs space-y-2 bg-emerald-50 border-emerald-200 text-emerald-900";
             feedbackBox.classList.remove('hidden');
+
+            const scenario = appData[currentMode].scenarios[currentScenarioIndex];
+            const roleData = scenario.roles[selectedRoleKey];
 
             if (currentTurnIndex < roleData.turns.length - 1) {
                 currentTurnIndex++;
@@ -641,16 +596,7 @@
                 }, 1000);
             }
         }
-async function checkGrammarWithAPI(text) {
-    const response = await fetch("https://api.languagetool.org/v2/check", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ text: text, language: 'en-US' })
-    });
-    const data = await response.json();
-    // data.matches contains all grammatical errors, offsets, and replacements
-    return data.matches;
-}
+
         function explainGrammar() {
             const scenario = appData[currentMode].scenarios[currentScenarioIndex];
             alert(scenario.grammarTip);
