@@ -521,7 +521,6 @@ function handleUserSpeech(speechToText) {
             }
 
             // 1. NON-ENGLISH / CODE-SWITCHING DETECTION
-            // Checks for common non-English structural markers or non-Latin scripts
             const hasNonEnglish = /\b(mein|hai|hain|kya|kaise|nahi|aur|bhi|chhi|bhai)\b/i.test(lowerSpeech) || /[^\x00-\x7F]/.test(rawText);
             if (hasNonEnglish) {
                 grammarScore -= 4;
@@ -529,8 +528,7 @@ function handleUserSpeech(speechToText) {
                 correctedSentence = currentTurn.suggestedAnswer || currentTurn.aiExpectedHint || "I am participating in this conversation in English.";
             }
 
-            // 2. SEMANTIC NONSENSE & FRAGMENT CHECK (Word salad or mismatched tokens)
-            // Evaluates if the sentence structure is completely fractured (e.g., random numbers mixed with greetings, or disconnected nouns)
+            // 2. SEMANTIC NONSENSE & FRAGMENT CHECK
             const hasRandomNumbers = /\b[0-9]+\b/.test(lowerSpeech) && !promptText.includes("how many") && !promptText.includes("age") && !promptText.includes("long");
             const isTooShort = words.length < 2 && currentLevel !== 'Basic';
             
@@ -544,14 +542,13 @@ function handleUserSpeech(speechToText) {
                 if (currentTurn.suggestedAnswer) correctedSentence = currentTurn.suggestedAnswer;
             }
 
-            // 3. CONTEXTUAL RELEVANCE CHECK (Does the input match the question prompt?)
+            // 3. CONTEXTUAL RELEVANCE CHECK
             if (expectedHint && words.length > 1 && !hasNonEnglish) {
                 const stopWords = ['i', 'a', 'an', 'the', 'is', 'are', 'to', 'in', 'it', 'and', 'for', 'of', 'on', 'you', 'my'];
                 const expectedKeywords = expectedHint.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").split(/\s+/).filter(w => w.length > 2 && !stopWords.includes(w));
                 
                 if (expectedKeywords.length > 0) {
                     const matchCount = expectedKeywords.filter(kw => lowerSpeech.includes(kw)).length;
-                    // If the user's reply is completely off-topic or evasive (e.g., "why should I tell...")
                     if (lowerSpeech.startsWith("why should") || lowerSpeech.includes("none of your business") || (matchCount === 0 && words.length > 3)) {
                         grammarScore -= 3;
                         mistakesFound.push("Context Alignment: Your response drifts away from the objective of this scenario step. Try addressing the prompt directly.");
@@ -561,7 +558,6 @@ function handleUserSpeech(speechToText) {
             }
 
             // 4. CORE GRAMMAR & TENSE INSPECTIONS
-            // Subject-Verb Agreement checks
             if (/\b(i)\s+(is|are)\b/i.test(lowerSpeech)) {
                 grammarScore -= 2.5;
                 mistakesFound.push("Grammar Rule: Subject-verb agreement mismatch. Use 'I am' instead of 'I is/are'.");
@@ -573,14 +569,12 @@ function handleUserSpeech(speechToText) {
                 correctedSentence = correctedSentence.replace(/\b(he|she|it)\s+am\b/gi, "$1 is").replace(/\b(he|she|it)\s+are\b/gi, "$1 is");
             }
 
-            // Pluralization checks after numbers
             if (/\b(two|three|four|five|six|seven|eight|nine|ten|[2-9])\s+(year|month|week|day|hour|student|book)\b/i.test(lowerSpeech)) {
                 grammarScore -= 2;
                 mistakesFound.push("Pluralization Error: Nouns following a number greater than one must be pluralized (e.g., 'two years' instead of 'two year').");
                 correctedSentence = correctedSentence.replace(/\b(two|three|four|five|six|seven|eight|nine|ten|[2-9])\s+(year|month|week|day|hour|student|book)\b/gi, "$1 $2s");
             }
 
-            // Common irregular verb errors
             if (/\b(goed|eated|runned|teached|flyed)\b/i.test(lowerSpeech)) {
                 grammarScore -= 2;
                 mistakesFound.push("Tense Error: Incorrect irregular past tense form used.");
@@ -591,18 +585,42 @@ function handleUserSpeech(speechToText) {
                     .replace(/\bteached\b/gi, "taught");
             }
 
-            // 5. FINAL FEEDBACK & SCORE CONSOLIDATION
             if (mistakesFound.length === 0) {
                 mistakesFound.push("Great sentence structure! Accurate grammar and fluent syntax.");
             }
 
             grammarScore = Math.max(3, Math.min(10, grammarScore));
 
-            // Render Feedback Box UI
+            // --- RENDER FEEDBACK BOX WITH SPEAKER ICON ---
             document.getElementById('userSpokenText').innerText = rawText;
-            document.getElementById('correctedSentenceText').innerText = correctedSentence;
-            document.getElementById('grammarMistakesText').innerText = mistakesFound.join(" | ");
             document.getElementById('marksBadge').innerText = `Score: ${grammarScore.toFixed(1)}/10`;
+            document.getElementById('grammarMistakesText').innerText = mistakesFound.join(" | ");
+
+            // Inject corrected sentence alongside an interactive speaker button
+            const correctedBox = document.getElementById('correctedSentenceText');
+            correctedBox.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span>${correctedSentence}</span>
+                    <button id="pronounceCorrectedBtn" title="Listen to Correct Pronunciation" class="ml-2 p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-sm flex items-center justify-center transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                        </svg>
+                    </button>
+                </div>
+            `;
+
+            // Attach event listener to the dynamically created speaker button
+            document.getElementById('pronounceCorrectedBtn').addEventListener('click', () => {
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel(); // Stop any ongoing speech
+                    const utterance = new SpeechSynthesisUtterance(correctedSentence);
+                    utterance.lang = 'en-US';
+                    utterance.rate = 0.9; // Slight pacing adjustment for clearer language learning
+                    window.speechSynthesis.speak(utterance);
+                } else {
+                    alert("Text-to-speech is not supported by your browser.");
+                }
+            });
             
             feedbackBox.className = "border p-3 rounded-xl text-xs space-y-2 bg-emerald-50 border-emerald-200 text-emerald-900";
             feedbackBox.classList.remove('hidden');
