@@ -110,8 +110,7 @@
                 <div class="space-y-1 text-xs pt-1">
                     <p><strong>Your Input:</strong> <span id="userSpokenText" class="italic text-slate-600">--</span></p>
                     <p><strong>Corrected Version:</strong> <span id="correctedSentenceText" class="font-semibold text-emerald-700">--</span></p>
-                    <p><strong>Grammar Insights / Mistakes:</strong></p>
-                    <div id="grammarMistakesText" class="text-rose-700">--</div>
+                    <p><strong>Grammar Insights / Mistakes:</strong> <span id="grammarMistakesText" class="text-rose-700">--</span></p>
                 </div>
             </div>
 
@@ -479,120 +478,18 @@
             stopBtn.disabled = true;
         }
 
-        // Map LanguageTool rule categories to a label + Tailwind color used throughout the feedback UI
-        const GRAMMAR_CATEGORY_STYLES = {
-            GRAMMAR:        { label: 'Grammar',     color: 'rose',   weight: 1.5 },
-            CONFUSED_WORDS: { label: 'Word Choice', color: 'orange', weight: 1.5 },
-            TYPOS:          { label: 'Spelling',    color: 'amber',  weight: 1.2 },
-            PUNCTUATION:    { label: 'Punctuation', color: 'sky',    weight: 0.7 },
-            TYPOGRAPHY:     { label: 'Typography',  color: 'sky',    weight: 0.5 },
-            STYLE:          { label: 'Style',       color: 'violet', weight: 0.5 },
-            REDUNDANCY:     { label: 'Style',       color: 'violet', weight: 0.5 },
-            default:        { label: 'Grammar',     color: 'rose',   weight: 1 }
-        };
-
-        function categoryStyleFor(match) {
-            const catId = match && match.rule && match.rule.category && match.rule.category.id;
-            return GRAMMAR_CATEGORY_STYLES[catId] || GRAMMAR_CATEGORY_STYLES.default;
-        }
-
-        function escapeHtml(str) {
-            const div = document.createElement('div');
-            div.innerText = str == null ? '' : str;
-            return div.innerHTML;
-        }
-
-        // Calls the LanguageTool public API with a timeout and explicit error states,
-        // so the UI can distinguish "no mistakes found" from "check failed / rate-limited".
         async function checkGrammarWithAPI(text) {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
             try {
                 const response = await fetch("https://api.languagetool.org/v2/check", {
                     method: "POST",
                     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                    body: new URLSearchParams({ text: text, language: 'en-US' }),
-                    signal: controller.signal
+                    body: new URLSearchParams({ text: text, language: 'en-US' })
                 });
-                clearTimeout(timeoutId);
-
-                if (response.status === 429) {
-                    return { ok: false, error: 'rate_limited', matches: [] };
-                }
-                if (!response.ok) {
-                    return { ok: false, error: 'server_error', matches: [] };
-                }
                 const data = await response.json();
-                return { ok: true, error: null, matches: data.matches || [] };
-            } catch (e) {
-                clearTimeout(timeoutId);
-                const errorType = e.name === 'AbortError' ? 'timeout' : 'network_error';
-                return { ok: false, error: errorType, matches: [] };
+                return data.matches || [];
+            } catch(e) {
+                return [];
             }
-        }
-
-        // Builds the "Your Input" text with each mistake underlined/marked by category color
-        function buildHighlightedText(rawText, matches) {
-            if (!matches.length) return escapeHtml(rawText);
-            const sorted = [...matches].sort((a, b) => a.offset - b.offset);
-            let result = '';
-            let cursor = 0;
-            sorted.forEach(match => {
-                if (match.offset < cursor) return; // skip overlapping matches
-                const style = categoryStyleFor(match);
-                result += escapeHtml(rawText.slice(cursor, match.offset));
-                const errorText = rawText.slice(match.offset, match.offset + match.length);
-                result += `<mark class="bg-${style.color}-200 text-${style.color}-900 rounded px-0.5" title="${escapeHtml(match.message)}">${escapeHtml(errorText)}</mark>`;
-                cursor = match.offset + match.length;
-            });
-            result += escapeHtml(rawText.slice(cursor));
-            return result;
-        }
-
-        // Builds a categorized, per-mistake breakdown with up to 3 alternative suggestions each
-        function buildMistakesListHtml(matches) {
-            return matches.map(match => {
-                const style = categoryStyleFor(match);
-                const suggestions = (match.replacements || [])
-                    .slice(0, 3)
-                    .map(r => r.value)
-                    .filter(Boolean);
-                const suggestionHtml = suggestions.length
-                    ? `<div class="text-emerald-700 font-medium mt-0.5">Suggested: ${suggestions.map(escapeHtml).join(' / ')}</div>`
-                    : '';
-                return `
-                    <div class="flex items-start gap-2 py-1.5 border-b border-slate-100 last:border-0">
-                        <span class="shrink-0 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-${style.color}-100 text-${style.color}-800">${style.label}</span>
-                        <div class="text-slate-700">
-                            <div>${escapeHtml(match.message)}</div>
-                            ${suggestionHtml}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function computeGrammarScore(matches) {
-            const penalty = matches.reduce((sum, m) => sum + categoryStyleFor(m).weight, 0);
-            return Math.max(2, Math.round((10 - penalty) * 10) / 10);
-        }
-
-        // Applies each match's top-ranked replacement to build the corrected sentence
-        function applyCorrections(rawText, matches) {
-            let offsetShift = 0;
-            let tempSentence = rawText;
-            [...matches]
-                .sort((a, b) => a.offset - b.offset)
-                .forEach(match => {
-                    if (match.replacements && match.replacements.length > 0) {
-                        const replacement = match.replacements[0].value;
-                        const start = match.offset;
-                        const end = match.offset + match.length;
-                        tempSentence = tempSentence.substring(0, start + offsetShift) + replacement + tempSentence.substring(end + offsetShift);
-                        offsetShift += replacement.length - match.length;
-                    }
-                });
-            return tempSentence;
         }
 
         async function handleUserSpeech(speechToText) {
@@ -603,52 +500,39 @@
             chatContainer.innerHTML += `
                 <div class="flex items-start justify-end space-x-2 my-2">
                     <div class="bg-indigo-600 text-white p-3 rounded-2xl rounded-tr-none text-sm max-w-[85%] shadow-sm">
-                        <p>${escapeHtml(speechToText)}</p>
+                        <p>${speechToText}</p>
                     </div>
                     <div class="bg-indigo-100 rounded-full h-8 w-8 flex-shrink-0 flex items-center justify-center font-bold text-xs text-indigo-700">You</div>
                 </div>
             `;
 
-            appendSidebarMessage('You', escapeHtml(speechToText));
+            appendSidebarMessage('You', speechToText);
 
             const rawText = speechToText.trim();
-
-            // Show a loading state immediately instead of leaving stale feedback on screen
-            feedbackBox.className = "border p-3 rounded-xl text-xs space-y-2 bg-slate-50 border-slate-200 text-slate-600";
-            feedbackBox.classList.remove('hidden');
-            document.getElementById('userSpokenText').innerText = rawText;
-            document.getElementById('marksBadge').innerText = `Score: --/10`;
-            document.getElementById('grammarMistakesText').innerHTML = `<span class="italic text-slate-400">Checking grammar…</span>`;
-            document.getElementById('correctedSentenceText').innerText = '--';
-
             let grammarScore = 10;
+            let mistakesFound = [];
             let correctedSentence = rawText;
 
-            // Fetch comprehensive checks via the LanguageTool API
-            const { ok, error, matches } = await checkGrammarWithAPI(rawText);
-
-            if (!ok) {
-                // API failed / rate-limited / timed out — degrade gracefully instead of showing a fake score
-                const errorMessages = {
-                    rate_limited: "Grammar check is temporarily rate-limited. Your reply was still recorded — try again in a moment for feedback.",
-                    timeout: "Grammar check timed out. Your reply was still recorded — try again in a moment for feedback.",
-                    network_error: "Couldn't reach the grammar check service. Your reply was still recorded — try again in a moment for feedback.",
-                    server_error: "Grammar check service is temporarily unavailable. Your reply was still recorded — try again in a moment for feedback."
-                };
-                document.getElementById('marksBadge').innerText = `Score: N/A`;
-                document.getElementById('grammarMistakesText').innerHTML = `<span class="text-amber-700">${escapeHtml(errorMessages[error] || errorMessages.server_error)}</span>`;
-                feedbackBox.className = "border p-3 rounded-xl text-xs space-y-2 bg-amber-50 border-amber-200 text-amber-900";
-            } else if (matches.length > 0) {
-                grammarScore = computeGrammarScore(matches);
-                correctedSentence = applyCorrections(rawText, matches);
-
-                document.getElementById('userSpokenText').innerHTML = buildHighlightedText(rawText, matches);
-                document.getElementById('marksBadge').innerText = `Score: ${grammarScore.toFixed(1)}/10`;
-                document.getElementById('grammarMistakesText').innerHTML = buildMistakesListHtml(matches);
+            // Fetch comprehensive checks via LanguageTool API
+            const matches = await checkGrammarWithAPI(rawText);
+            if (matches && matches.length > 0) {
+                grammarScore = Math.max(3, 10 - (matches.length * 1.5));
+                mistakesFound = matches.map(m => m.message);
+                
+                let offsetShift = 0;
+                let tempSentence = rawText;
+                matches.forEach(match => {
+                    if (match.replacements && match.replacements.length > 0) {
+                        const replacement = match.replacements[0].value;
+                        const start = match.offset;
+                        const end = match.offset + match.length;
+                        tempSentence = tempSentence.substring(0, start + offsetShift) + replacement + tempSentence.substring(end + offsetShift);
+                        offsetShift += replacement.length - match.length;
+                    }
+                });
+                correctedSentence = tempSentence;
             } else {
-                document.getElementById('userSpokenText').innerText = rawText;
-                document.getElementById('marksBadge').innerText = `Score: ${grammarScore.toFixed(1)}/10`;
-                document.getElementById('grammarMistakesText').innerHTML = `<span class="text-emerald-700">Great sentence structure! Accurate grammar and fluent syntax.</span>`;
+                mistakesFound.push("Great sentence structure! Accurate grammar and fluent syntax.");
             }
 
             if (rawText.length > 0) {
@@ -657,6 +541,11 @@
                     correctedSentence += '.';
                 }
             }
+
+            // --- RENDER FEEDBACK BOX ---
+            document.getElementById('userSpokenText').innerText = rawText;
+            document.getElementById('marksBadge').innerText = `Score: ${grammarScore.toFixed(1)}/10`;
+            document.getElementById('grammarMistakesText').innerText = mistakesFound.join(" | ");
 
             const correctedBox = document.getElementById('correctedSentenceText');
             correctedBox.innerHTML = `
@@ -679,10 +568,8 @@
                     window.speechSynthesis.speak(utterance);
                 }
             });
-
-            if (ok) {
-                feedbackBox.className = "border p-3 rounded-xl text-xs space-y-2 bg-emerald-50 border-emerald-200 text-emerald-900";
-            }
+            
+            feedbackBox.className = "border p-3 rounded-xl text-xs space-y-2 bg-emerald-50 border-emerald-200 text-emerald-900";
             feedbackBox.classList.remove('hidden');
 
             const scenario = appData[currentMode].scenarios[currentScenarioIndex];
