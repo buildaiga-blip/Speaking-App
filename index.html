@@ -479,36 +479,22 @@
             stopBtn.disabled = true;
         }
 
-        // Shared category styling — used by both the LanguageTool pass and the AI pass
+        // Shared category styling. Harper's lint categories aren't fully documented, so unknown
+        // labels fall back to a sensible default rather than breaking the UI.
         const CATEGORY_META = {
-            'Grammar':            { color: 'rose',   weight: 1.5 },
-            'Word Choice':        { color: 'orange', weight: 1.5 },
-            'Sentence Structure': { color: 'indigo', weight: 1.5 },
-            'Spelling':           { color: 'amber',  weight: 1.2 },
-            'Punctuation':        { color: 'sky',    weight: 0.7 },
-            'Typography':         { color: 'sky',    weight: 0.5 },
-            'Style':              { color: 'violet', weight: 0.5 },
-            default:              { color: 'rose',   weight: 1 }
-        };
-
-        // Maps a LanguageTool rule-category id to our shared label set above
-        const LT_CATEGORY_TO_LABEL = {
-            GRAMMAR: 'Grammar',
-            CONFUSED_WORDS: 'Word Choice',
-            TYPOS: 'Spelling',
-            PUNCTUATION: 'Punctuation',
-            TYPOGRAPHY: 'Typography',
-            STYLE: 'Style',
-            REDUNDANCY: 'Style'
+            'Grammar':      { color: 'rose',   weight: 1.5 },
+            'Spelling':     { color: 'amber',  weight: 1.2 },
+            'Word Choice':  { color: 'orange', weight: 1.2 },
+            'Punctuation':  { color: 'sky',    weight: 0.7 },
+            'Formatting':   { color: 'sky',    weight: 0.5 },
+            'Repetition':   { color: 'violet', weight: 0.5 },
+            'Style':        { color: 'violet', weight: 0.5 },
+            'Readability':  { color: 'violet', weight: 0.5 },
+            default:        { color: 'rose',   weight: 1 }
         };
 
         function metaFor(label) {
             return CATEGORY_META[label] || CATEGORY_META.default;
-        }
-
-        function ltLabelFor(match) {
-            const catId = match && match.rule && match.rule.category && match.rule.category.id;
-            return LT_CATEGORY_TO_LABEL[catId] || 'Grammar';
         }
 
         function escapeHtml(str) {
@@ -517,159 +503,125 @@
             return div.innerHTML;
         }
 
-        // Calls the LanguageTool public API with a timeout and explicit error states,
-        // so the UI can distinguish "no mistakes found" from "check failed / rate-limited".
-        async function checkGrammarWithAPI(text) {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000);
-            try {
-                const response = await fetch("https://api.languagetool.org/v2/check", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                    body: new URLSearchParams({ text: text, language: 'en-US' }),
-                    signal: controller.signal
-                });
-                clearTimeout(timeoutId);
+        // --- Fully offline grammar engine: Harper (harper.js) ---
+        // Harper is an open-source (Apache-2.0), Rust-based grammar/spell checker compiled to
+        // WebAssembly. The WASM module is fetched once from a CDN on first use, then every check
+        // after that runs 100% locally in the browser — no per-request network call, no API key,
+        // no signup, no rate limit, no per-user cost. See https://writewithharper.com
+        const HARPER_CDN_URL = 'https://unpkg.com/harper.js@1.12.0/dist/harper.js';
+        let harperLinterPromise = null;
 
-                if (response.status === 429) {
-                    return { ok: false, error: 'rate_limited', matches: [] };
-                }
-                if (!response.ok) {
-                    return { ok: false, error: 'server_error', matches: [] };
-                }
-                const data = await response.json();
-                return { ok: true, error: null, matches: data.matches || [] };
+        function getHarperLinter() {
+            if (!harperLinterPromise) {
+                harperLinterPromise = import(HARPER_CDN_URL).then(({ WorkerLinter, binaryInlined }) => {
+                    return new WorkerLinter({ binary: binaryInlined });
+                });
+            }
+            return harperLinterPromise;
+        }
+
+        // Runs the offline check and normalizes Harper's Lint objects into plain data
+        // ({ start, end, label, message, suggestions }) so the rest of the UI doesn't need to
+        // know anything about Harper's internal API.
+        async function checkGrammarOffline(text) {
+            try {
+                const linter = await getHarperLinter();
+                const lints = await linter.lint(text);
+                const issues = lints.map(lint => {
+                    const span = lint.span();
+                    let label = 'Grammar';
+                    try {
+                        if (typeof lint.lint_kind === 'function') {
+                            const kind = lint.lint_kind();
+                            if (kind) label = String(kind);
+                        }
+                    } catch (e) { /* older/newer harper.js builds may not expose this — fine, default label */ }
+
+                    const suggestions = [];
+                    try {
+                        if (lint.suggestion_count && lint.suggestion_count() > 0) {
+                            for (const sug of lint.suggestions()) {
+                                const text = typeof sug.get_replacement_text === 'function' ? sug.get_replacement_text() : '';
+                                if (text) suggestions.push(text);
+                            }
+                        }
+                    } catch (e) { /* no suggestions available for this lint */ }
+
+                    return {
+                        start: span.start,
+                        end: span.end,
+                        label,
+                        message: lint.message(),
+                        suggestions: suggestions.slice(0, 3)
+                    };
+                });
+                return { ok: true, error: null, issues };
             } catch (e) {
-                clearTimeout(timeoutId);
-                const errorType = e.name === 'AbortError' ? 'timeout' : 'network_error';
-                return { ok: false, error: errorType, matches: [] };
+                return { ok: false, error: (e && e.message) || 'harper_load_failed', issues: [] };
             }
         }
 
-        // Second pass: an LLM-based check that catches things pattern-matching misses —
-        // missing words, subject-verb agreement, tense, articles, word order.
-        async function checkGrammarWithAI(text) {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 12000);
-            try {
-                const response = await fetch("https://api.anthropic.com/v1/messages", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    signal: controller.signal,
-                    body: JSON.stringify({
-                        model: "claude-sonnet-4-6",
-                        max_tokens: 1000,
-                        system: "You are a strict but encouraging English grammar checker inside a spoken-English practice app for learners. You receive one spoken sentence — it may be missing punctuation and capitalization since it came from speech-to-text, so do not flag missing capitalization/punctuation unless a real word is also missing. Find grammar problems a beginner learner would actually make: missing words (e.g. a missing 'is'/'am'/'are'), subject-verb agreement, verb tense, articles (a/an/the), prepositions, and word order. Respond with ONLY valid JSON, no markdown fences, no commentary, in exactly this shape: {\"correctedSentence\": \"...\", \"issues\": [{\"label\": \"Grammar|Spelling|Word Choice|Sentence Structure\", \"message\": \"short beginner-friendly explanation\"}]}. If the sentence is already grammatically correct, return \"issues\": [].",
-                        messages: [{ role: "user", content: text }]
-                    })
-                });
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    return { ok: false, error: 'server_error', correctedSentence: '', issues: [] };
-                }
-                const data = await response.json();
-                const outputText = (data.content || [])
-                    .filter(block => block.type === 'text')
-                    .map(block => block.text)
-                    .join('')
-                    .trim()
-                    .replace(/^```(json)?/i, '')
-                    .replace(/```$/, '')
-                    .trim();
-
-                const parsed = JSON.parse(outputText);
-                return {
-                    ok: true,
-                    error: null,
-                    correctedSentence: typeof parsed.correctedSentence === 'string' ? parsed.correctedSentence : '',
-                    issues: Array.isArray(parsed.issues) ? parsed.issues : []
-                };
-            } catch (e) {
-                clearTimeout(timeoutId);
-                const errorType = e.name === 'AbortError' ? 'timeout' : (e instanceof SyntaxError ? 'parse_error' : 'network_error');
-                return { ok: false, error: errorType, correctedSentence: '', issues: [] };
-            }
-        }
-
-        // Builds the "Your Input" text with each LanguageTool mistake underlined by category color
-        // (offsets are only available from the LanguageTool pass, so inline marking uses that data)
-        function buildHighlightedText(rawText, matches) {
-            if (!matches.length) return escapeHtml(rawText);
-            const sorted = [...matches].sort((a, b) => a.offset - b.offset);
+        // Builds the "Your Input" text with each mistake underlined by category color
+        function buildHighlightedText(rawText, issues) {
+            if (!issues.length) return escapeHtml(rawText);
+            const sorted = [...issues].sort((a, b) => a.start - b.start);
             let result = '';
             let cursor = 0;
-            sorted.forEach(match => {
-                if (match.offset < cursor) return; // skip overlapping matches
-                const meta = metaFor(ltLabelFor(match));
-                result += escapeHtml(rawText.slice(cursor, match.offset));
-                const errorText = rawText.slice(match.offset, match.offset + match.length);
-                result += `<mark class="bg-${meta.color}-200 text-${meta.color}-900 rounded px-0.5" title="${escapeHtml(match.message)}">${errorText ? escapeHtml(errorText) : ''}</mark>`;
-                cursor = match.offset + match.length;
+            sorted.forEach(issue => {
+                if (issue.start < cursor) return; // skip overlapping spans
+                const meta = metaFor(issue.label);
+                result += escapeHtml(rawText.slice(cursor, issue.start));
+                const errorText = rawText.slice(issue.start, issue.end);
+                result += `<mark class="bg-${meta.color}-200 text-${meta.color}-900 rounded px-0.5" title="${escapeHtml(issue.message)}">${errorText ? escapeHtml(errorText) : ''}</mark>`;
+                cursor = issue.end;
             });
             result += escapeHtml(rawText.slice(cursor));
             return result;
         }
 
-        // Renders one mistake row; sourceBadge marks AI-only findings so it's clear which pass caught what
-        function buildMistakeItemHtml(label, message, suggestions, sourceBadge) {
+        function buildMistakeItemHtml(label, message, suggestions) {
             const meta = metaFor(label);
             const suggestionHtml = suggestions && suggestions.length
                 ? `<div class="text-emerald-700 font-medium mt-0.5">Suggested: ${suggestions.map(escapeHtml).join(' / ')}</div>`
-                : '';
-            const badgeHtml = sourceBadge
-                ? `<span class="ml-1.5 text-[8px] font-bold uppercase px-1 py-0.5 rounded bg-indigo-600 text-white align-middle">${sourceBadge}</span>`
                 : '';
             return `
                 <div class="flex items-start gap-2 py-1.5 border-b border-slate-100 last:border-0">
                     <span class="shrink-0 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-${meta.color}-100 text-${meta.color}-800">${escapeHtml(label)}</span>
                     <div class="text-slate-700 flex-1">
-                        <div>${escapeHtml(message)}${badgeHtml}</div>
+                        <div>${escapeHtml(message)}</div>
                         ${suggestionHtml}
                     </div>
                 </div>
             `;
         }
 
-        function buildMistakesListHtml(matches) {
-            return matches.map(match => {
-                const suggestions = (match.replacements || []).slice(0, 3).map(r => r.value).filter(Boolean);
-                return buildMistakeItemHtml(ltLabelFor(match), match.message, suggestions, null);
-            }).join('');
+        function buildMistakesListHtml(issues) {
+            return issues.map(issue => buildMistakeItemHtml(issue.label, issue.message, issue.suggestions)).join('');
         }
 
-        function buildAIIssuesHtml(issues) {
-            return issues.map(issue => buildMistakeItemHtml(issue.label || 'Grammar', issue.message || '', null, 'AI')).join('');
-        }
-
-        function computeScoreFromMatches(matches) {
-            const penalty = matches.reduce((sum, m) => sum + metaFor(ltLabelFor(m)).weight, 0);
+        function computeGrammarScore(issues) {
+            const penalty = issues.reduce((sum, issue) => sum + metaFor(issue.label).weight, 0);
             return Math.max(2, Math.round((10 - penalty) * 10) / 10);
         }
 
-        function computeScoreFromIssues(issues) {
-            const penalty = issues.reduce((sum, i) => sum + metaFor(i.label).weight, 0);
-            return Math.max(2, Math.round((10 - penalty) * 10) / 10);
-        }
-
-        // Applies each LanguageTool match's top-ranked replacement to build a corrected sentence
-        // (used as a fallback if the AI pass is unavailable)
-        function applyCorrections(rawText, matches) {
+        // Applies each issue's top-ranked suggestion to build a corrected sentence
+        function applyCorrections(rawText, issues) {
             let offsetShift = 0;
-            let tempSentence = rawText;
-            [...matches]
-                .sort((a, b) => a.offset - b.offset)
-                .forEach(match => {
-                    if (match.replacements && match.replacements.length > 0) {
-                        const replacement = match.replacements[0].value;
-                        const start = match.offset;
-                        const end = match.offset + match.length;
-                        tempSentence = tempSentence.substring(0, start + offsetShift) + replacement + tempSentence.substring(end + offsetShift);
-                        offsetShift += replacement.length - match.length;
+            let result = rawText;
+            [...issues]
+                .sort((a, b) => a.start - b.start)
+                .forEach(issue => {
+                    if (issue.suggestions.length > 0) {
+                        const replacement = issue.suggestions[0];
+                        const start = issue.start + offsetShift;
+                        const end = issue.end + offsetShift;
+                        result = result.slice(0, start) + replacement + result.slice(end);
+                        offsetShift += replacement.length - (issue.end - issue.start);
                     }
                 });
-            return tempSentence;
+            return result;
         }
+
 
         async function handleUserSpeech(speechToText) {
             resetMicButtons();
@@ -694,71 +646,31 @@
             feedbackBox.classList.remove('hidden');
             document.getElementById('userSpokenText').innerText = rawText;
             document.getElementById('marksBadge').innerText = `Score: --/10`;
-            document.getElementById('grammarMistakesText').innerHTML = `<span class="italic text-slate-400">Running quick check + AI review…</span>`;
+            document.getElementById('grammarMistakesText').innerHTML = `<span class="italic text-slate-400">Checking grammar (offline, on-device)…</span>`;
             document.getElementById('correctedSentenceText').innerText = '--';
 
             let grammarScore = null;
             let correctedSentence = rawText;
 
-            // Run both passes in parallel: LanguageTool (fast, rule-based, gives offsets for
-            // inline highlighting) and Claude (slower, catches missing words / agreement / tense
-            // that pattern-matching misses). Each helper resolves ok:false internally on failure,
-            // so one pass failing never blocks the other.
-            const [ltResult, aiResult] = await Promise.all([
-                checkGrammarWithAPI(rawText),
-                checkGrammarWithAI(rawText)
-            ]);
+            // Fully offline check — Harper (WASM) runs locally in the browser, no network call,
+            // no API key, no rate limit. See checkGrammarOffline() above.
+            const result = await checkGrammarOffline(rawText);
 
-            // --- "Your Input" highlighting uses LanguageTool's character offsets ---
-            document.getElementById('userSpokenText').innerHTML = (ltResult.ok && ltResult.matches.length > 0)
-                ? buildHighlightedText(rawText, ltResult.matches)
+            document.getElementById('userSpokenText').innerHTML = (result.ok && result.issues.length > 0)
+                ? buildHighlightedText(rawText, result.issues)
                 : escapeHtml(rawText);
 
-            // --- Quick Check section ---
-            let quickSectionHtml;
-            if (!ltResult.ok) {
-                const ltErrorMessages = {
-                    rate_limited: "Quick check is rate-limited right now.",
-                    timeout: "Quick check timed out.",
-                    network_error: "Couldn't reach the quick check service.",
-                    server_error: "Quick check service is temporarily unavailable."
-                };
-                quickSectionHtml = `<div class="text-amber-700 text-[11px] italic">${escapeHtml(ltErrorMessages[ltResult.error] || ltErrorMessages.server_error)}</div>`;
-            } else if (ltResult.matches.length > 0) {
-                quickSectionHtml = buildMistakesListHtml(ltResult.matches);
+            if (!result.ok) {
+                document.getElementById('grammarMistakesText').innerHTML = `<span class="text-amber-700 text-[11px] italic">Grammar checker failed to load (offline engine). Your reply was still recorded — try refreshing the page.</span>`;
+            } else if (result.issues.length > 0) {
+                document.getElementById('grammarMistakesText').innerHTML = buildMistakesListHtml(result.issues);
             } else {
-                quickSectionHtml = `<div class="text-emerald-700 text-[11px]">No issues found.</div>`;
+                document.getElementById('grammarMistakesText').innerHTML = `<span class="text-emerald-700">Great sentence structure! Accurate grammar and fluent syntax.</span>`;
             }
 
-            // --- AI Review section (second pass) ---
-            let aiSectionHtml;
-            if (!aiResult.ok) {
-                aiSectionHtml = `<div class="text-amber-700 text-[11px] italic">AI review unavailable right now — try again shortly.</div>`;
-            } else if (aiResult.issues.length > 0) {
-                aiSectionHtml = buildAIIssuesHtml(aiResult.issues);
-            } else {
-                aiSectionHtml = `<div class="text-emerald-700 text-[11px]">No additional issues found.</div>`;
-            }
-
-            document.getElementById('grammarMistakesText').innerHTML = `
-                <div class="mb-1.5">
-                    <div class="text-[10px] font-bold text-slate-500 uppercase mb-1">⚡ Quick Check</div>
-                    ${quickSectionHtml}
-                </div>
-                <div>
-                    <div class="text-[10px] font-bold text-indigo-600 uppercase mb-1 mt-1.5">🤖 AI Review (deeper pass)</div>
-                    ${aiSectionHtml}
-                </div>
-            `;
-
-            // --- Score & corrected sentence: prefer the AI pass (catches more), fall back to
-            //     the quick check, fall back to a bare capitalization/punctuation touch-up ---
-            if (aiResult.ok) {
-                grammarScore = computeScoreFromIssues(aiResult.issues);
-                correctedSentence = aiResult.correctedSentence || (ltResult.ok ? applyCorrections(rawText, ltResult.matches) : rawText);
-            } else if (ltResult.ok) {
-                grammarScore = computeScoreFromMatches(ltResult.matches);
-                correctedSentence = applyCorrections(rawText, ltResult.matches);
+            if (result.ok) {
+                grammarScore = computeGrammarScore(result.issues);
+                correctedSentence = applyCorrections(rawText, result.issues);
             }
 
             document.getElementById('marksBadge').innerText = grammarScore === null ? `Score: N/A` : `Score: ${grammarScore.toFixed(1)}/10`;
@@ -792,7 +704,7 @@
                 }
             });
 
-            feedbackBox.className = (ltResult.ok || aiResult.ok)
+            feedbackBox.className = result.ok
                 ? "border p-3 rounded-xl text-xs space-y-2 bg-emerald-50 border-emerald-200 text-emerald-900"
                 : "border p-3 rounded-xl text-xs space-y-2 bg-amber-50 border-amber-200 text-amber-900";
             feedbackBox.classList.remove('hidden');
