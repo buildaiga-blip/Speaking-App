@@ -508,13 +508,38 @@
         // WebAssembly. The WASM module is fetched once from a CDN on first use, then every check
         // after that runs 100% locally in the browser — no per-request network call, no API key,
         // no signup, no rate limit, no per-user cost. See https://writewithharper.com
-        const HARPER_CDN_URL = 'https://unpkg.com/harper.js@1.12.0/dist/harper.js';
+        const HARPER_CDN_URLS = [
+            'https://unpkg.com/harper.js/dist/harper.js',
+            'https://cdn.jsdelivr.net/npm/harper.js@latest/dist/harper.js'
+        ];
         let harperLinterPromise = null;
+
+        async function loadHarperModule() {
+            let lastError = null;
+            for (const url of HARPER_CDN_URLS) {
+                try {
+                    const mod = await import(url);
+                    console.log('[grammar] loaded harper.js from', url);
+                    return mod;
+                } catch (e) {
+                    lastError = e;
+                    console.error('[grammar] failed to load harper.js from', url, e);
+                }
+            }
+            throw lastError || new Error('All Harper CDN sources failed');
+        }
 
         function getHarperLinter() {
             if (!harperLinterPromise) {
-                harperLinterPromise = import(HARPER_CDN_URL).then(({ WorkerLinter, binaryInlined }) => {
-                    return new WorkerLinter({ binary: binaryInlined });
+                harperLinterPromise = loadHarperModule().then(mod => {
+                    if (!mod.WorkerLinter || !mod.binaryInlined) {
+                        console.error('[grammar] harper.js module loaded but expected exports are missing. Got keys:', Object.keys(mod));
+                        throw new Error('harper.js loaded but WorkerLinter/binaryInlined exports were not found (API may have changed)');
+                    }
+                    return new mod.WorkerLinter({ binary: mod.binaryInlined });
+                }).catch(e => {
+                    harperLinterPromise = null; // allow a retry on the next call instead of caching the failure forever
+                    throw e;
                 });
             }
             return harperLinterPromise;
@@ -557,7 +582,9 @@
                 });
                 return { ok: true, error: null, issues };
             } catch (e) {
-                return { ok: false, error: (e && e.message) || 'harper_load_failed', issues: [] };
+                console.error('[grammar] offline check failed:', e);
+                const detail = (e && e.message) ? e.message : String(e);
+                return { ok: false, error: detail, issues: [] };
             }
         }
 
@@ -661,7 +688,7 @@
                 : escapeHtml(rawText);
 
             if (!result.ok) {
-                document.getElementById('grammarMistakesText').innerHTML = `<span class="text-amber-700 text-[11px] italic">Grammar checker failed to load (offline engine). Your reply was still recorded — try refreshing the page.</span>`;
+                document.getElementById('grammarMistakesText').innerHTML = `<span class="text-amber-700 text-[11px] italic">Offline grammar engine failed to load: ${escapeHtml(result.error)}. Your reply was still recorded — check the browser console (F12) for details, or try refreshing.</span>`;
             } else if (result.issues.length > 0) {
                 document.getElementById('grammarMistakesText').innerHTML = buildMistakesListHtml(result.issues);
             } else {
