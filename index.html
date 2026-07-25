@@ -121,6 +121,7 @@
 
     <!-- 1. Load External Content Database -->
     <script src="content.js"></script>
+    <script src="grammar-engine.js"></script>
 
     <!-- 2. Application Engine Logic -->
     <script>
@@ -482,15 +483,20 @@
         // Shared category styling. Harper's lint categories aren't fully documented, so unknown
         // labels fall back to a sensible default rather than breaking the UI.
         const CATEGORY_META = {
-            'Grammar':      { color: 'rose',   weight: 1.5 },
-            'Spelling':     { color: 'amber',  weight: 1.2 },
-            'Word Choice':  { color: 'orange', weight: 1.2 },
-            'Punctuation':  { color: 'sky',    weight: 0.7 },
-            'Formatting':   { color: 'sky',    weight: 0.5 },
-            'Repetition':   { color: 'violet', weight: 0.5 },
-            'Style':        { color: 'violet', weight: 0.5 },
-            'Readability':  { color: 'violet', weight: 0.5 },
-            default:        { color: 'rose',   weight: 1 }
+            'Grammar':            { color: 'rose',   weight: 1.5 },
+            'Helping Verb':       { color: 'rose',   weight: 1.5 },
+            'Verb Form':          { color: 'rose',   weight: 1.5 },
+            'Sentence Structure': { color: 'indigo', weight: 1.5 },
+            'Spelling':           { color: 'amber',  weight: 1.2 },
+            'Word Choice':        { color: 'orange', weight: 1.2 },
+            'Article':            { color: 'teal',   weight: 0.8 },
+            'Tense':              { color: 'fuchsia', weight: 0.5 },
+            'Punctuation':        { color: 'sky',    weight: 0.7 },
+            'Formatting':         { color: 'sky',    weight: 0.5 },
+            'Repetition':         { color: 'violet', weight: 0.5 },
+            'Style':              { color: 'violet', weight: 0.5 },
+            'Readability':        { color: 'violet', weight: 0.5 },
+            default:              { color: 'rose',   weight: 1 }
         };
 
         function metaFor(label) {
@@ -579,6 +585,23 @@
                         message: lint.message(),
                         suggestions: suggestions.slice(0, 3)
                     };
+                }).filter(issue => {
+                    // Speech-to-text never has capitalization by design, so a sentence-initial
+                    // "doesn't start with a capital letter" lint is a false positive here — we
+                    // already capitalize the corrected sentence's first letter separately below.
+                    if (issue.start === 0 && /capital/i.test(issue.message)) return false;
+
+                    // Harper's dictionary doesn't know most personal names, so it frequently
+                    // flags a correctly-spelled name as a misspelling and suggests replacing it
+                    // with an unrelated word (e.g. "Rahul" -> "Raoul"). Treat any single
+                    // capitalized word as a likely proper noun and skip flagging it, so it never
+                    // gets silently "corrected" into something wrong.
+                    const originalWord = text.slice(issue.start, issue.end);
+                    if (/spell/i.test(issue.label) && /^[A-Z][a-zA-Z]*$/.test(originalWord) && originalWord.length > 1) {
+                        return false;
+                    }
+
+                    return true;
                 });
                 return { ok: true, error: null, issues };
             } catch (e) {
@@ -679,25 +702,49 @@
             let grammarScore = null;
             let correctedSentence = rawText;
 
-            // Fully offline check — Harper (WASM) runs locally in the browser, no network call,
-            // no API key, no rate limit. See checkGrammarOffline() above.
-            const result = await checkGrammarOffline(rawText);
+            // Fully offline check — Harper (WASM) runs locally in the browser for general
+            // spelling/grammar, plus grammar-engine.js (a comprehensive, standalone ESL rules
+            // file — see that file for details) for helping verbs, verb agreement (with real
+            // conjugation rules + an irregular-verb table), articles, prepositions, sentence
+            // structure, AND a context-aware tense check that compares the user's answer against
+            // the current turn's own suggestedAnswer from content.js — so it automatically
+            // applies to any new scenario/turn added later, with no code changes here.
+            // No network call, no API key, no rate limit, either way.
+            const harperResult = await checkGrammarOffline(rawText);
+            let referenceAnswer = null;
+            try {
+                const scenario = appData[currentMode].scenarios[currentScenarioIndex];
+                const roleData = scenario.roles[selectedRoleKey];
+                const currentTurn = roleData.turns[currentTurnIndex];
+                referenceAnswer = currentTurn && currentTurn.suggestedAnswer ? currentTurn.suggestedAnswer : null;
+            } catch (e) { /* no active turn context (e.g. free-speak) — tense check simply skips */ }
 
-            document.getElementById('userSpokenText').innerHTML = (result.ok && result.issues.length > 0)
-                ? buildHighlightedText(rawText, result.issues)
+            const heuristicResult = window.GrammarEngine
+                ? window.GrammarEngine.checkWithContext(rawText, referenceAnswer)
+                : { ok: false, error: 'grammar-engine.js not loaded', issues: [] };
+
+            const combinedIssues = [
+                ...(harperResult.ok ? harperResult.issues : []),
+                ...(heuristicResult.ok ? heuristicResult.issues : [])
+            ];
+            const anyEngineOk = harperResult.ok || heuristicResult.ok;
+
+            document.getElementById('userSpokenText').innerHTML = combinedIssues.length > 0
+                ? buildHighlightedText(rawText, combinedIssues)
                 : escapeHtml(rawText);
 
-            if (!result.ok) {
-                document.getElementById('grammarMistakesText').innerHTML = `<span class="text-amber-700 text-[11px] italic">Offline grammar engine failed to load: ${escapeHtml(result.error)}. Your reply was still recorded — check the browser console (F12) for details, or try refreshing.</span>`;
-            } else if (result.issues.length > 0) {
-                document.getElementById('grammarMistakesText').innerHTML = buildMistakesListHtml(result.issues);
+            if (!anyEngineOk) {
+                document.getElementById('grammarMistakesText').innerHTML = `<span class="text-amber-700 text-[11px] italic">Offline grammar engine failed to load: ${escapeHtml(harperResult.error)}. Your reply was still recorded — check the browser console (F12) for details, or try refreshing.</span>`;
+            } else if (combinedIssues.length > 0) {
+                document.getElementById('grammarMistakesText').innerHTML = buildMistakesListHtml(combinedIssues)
+                    + (!harperResult.ok ? `<div class="text-amber-700 text-[10px] italic mt-1">Note: the general spell/grammar engine failed to load, so this only reflects the ESL heuristic checks.</div>` : '');
             } else {
                 document.getElementById('grammarMistakesText').innerHTML = `<span class="text-emerald-700">Great sentence structure! Accurate grammar and fluent syntax.</span>`;
             }
 
-            if (result.ok) {
-                grammarScore = computeGrammarScore(result.issues);
-                correctedSentence = applyCorrections(rawText, result.issues);
+            if (anyEngineOk) {
+                grammarScore = computeGrammarScore(combinedIssues);
+                correctedSentence = applyCorrections(rawText, combinedIssues);
             }
 
             document.getElementById('marksBadge').innerText = grammarScore === null ? `Score: N/A` : `Score: ${grammarScore.toFixed(1)}/10`;
@@ -731,7 +778,7 @@
                 }
             });
 
-            feedbackBox.className = result.ok
+            feedbackBox.className = anyEngineOk
                 ? "border p-3 rounded-xl text-xs space-y-2 bg-emerald-50 border-emerald-200 text-emerald-900"
                 : "border p-3 rounded-xl text-xs space-y-2 bg-amber-50 border-amber-200 text-amber-900";
             feedbackBox.classList.remove('hidden');
